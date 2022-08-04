@@ -1,7 +1,7 @@
 package deque;
 
 public class ArrayDeque<T> {
-    private final int INITIAL_CAPACITY  = 8;
+    private final int INITIAL_CAPACITY = 8;
     private T[] items;
     private int size;
     private int nextFirst;
@@ -13,7 +13,9 @@ public class ArrayDeque<T> {
         nextLast = 1;
     }
 
-    /** Adjusts the length of this array to match the size, approving efficiency. */
+    /**
+     * Adjusts the length of this array to match the size, approving efficiency.
+     */
     private void resize() {
         if (size >= items.length) {
             // expands the length of this array
@@ -24,29 +26,34 @@ public class ArrayDeque<T> {
         }
     }
 
-    /** Helps resize() to adjust the size of array */
+    /**
+     * Helps resize() to adjust the size of array
+     */
     private void resizeHelper(int capacity) {
         T[] a = items;
-        int aNextLast = nextLast;
-        int aNextFirst = nextFirst;
+        int begin = plusOne(nextFirst);
+        int end = minusOne(nextLast);
         items = (T[]) new Object[capacity];
         nextFirst = 0;
         nextLast = 1;
-        aNextLast = plusOne(aNextFirst);
-        for (int i = aNextFirst; i != minusOne(aNextLast); i = Math.floorMod(i + 1, a.length)) {
+        for (int i = begin; i != end; i = Math.floorMod(i + 1, a.length)) {
             items[nextLast] = a[i];
             nextLast = plusOne(nextLast);
         }
-        items[nextLast] = a[minusOne(aNextLast)];
+        items[nextLast] = a[end];
         nextLast = plusOne(nextLast);
     }
 
-    /** Helps pointers to move */
+    /**
+     * Helps pointers to move
+     */
     private int minusOne(int index) {
         return Math.floorMod(index - 1, items.length);
     }
 
-    /** Helps pointers to move */
+    /**
+     * Helps pointers to move
+     */
     private int plusOne(int index) {
         return Math.floorMod(index + 1, items.length);
     }
@@ -82,7 +89,7 @@ public class ArrayDeque<T> {
     }
 
     public T removeFirst() {
-        if (size <= 0) {
+        if (isEmpty()) {
             return null;
         }
         nextFirst = plusOne(nextFirst);
@@ -94,26 +101,23 @@ public class ArrayDeque<T> {
     }
 
     public T removeLast() {
-        if (size <= 0) {
+        if (isEmpty()) {
             return null;
         }
         nextLast = minusOne(nextLast);
-        T firstItem = items[nextLast];
+        T lastItem = items[nextLast];
         items[nextLast] = null;
         size--;
         resize();
-        return firstItem;
+        return lastItem;
     }
 
     public T get(int index) {
         if (index >= size || index < 0 || isEmpty()) {
             return null;
         }
-        int target = plusOne(nextFirst);
-        for (int i = 0; i < index; i++) {
-            target = plusOne(target);
-        }
-        return items[target];
+        index = Math.floorMod(plusOne(nextFirst) + index, items.length);
+        return items[index];
     }
 
     public ArrayDeque(ArrayDeque other) {
