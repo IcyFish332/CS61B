@@ -118,15 +118,27 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
         return items[index];
     }
 
-    public ArrayDeque(ArrayDeque other) {
-        items = (T[]) new Object[other.items.length];
-        size = other.size;
-        nextFirst = other.nextFirst;
-        nextLast = other.nextLast;
-        for (int i = plusOne(nextFirst); i != minusOne(nextLast); i++) {
-            items[i] = (T) other.items[i];
+    @Override
+    public boolean equals(Object o) {
+        if (o == null) {
+            return false;
         }
-        items[minusOne(nextLast)] = (T) other.items[minusOne(nextLast)];
+        if (o == this) {
+            return true;
+        }
+        if (!(o instanceof Deque)) {
+            return false;
+        }
+        Deque<T> temp = (Deque<T>) o;
+        if (temp.size() != size()) {
+            return false;
+        }
+        for (int i = 0; i < size(); i++) {
+            if (temp.get(i) != get(i)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public Iterator<T> iterator() {
@@ -135,7 +147,7 @@ public class ArrayDeque<T> implements Deque<T>, Iterable<T> {
 
     private class ArrayDequeIterator implements Iterator<T> {
         private int flag;
-        public ArrayDequeIterator() {
+        ArrayDequeIterator() {
             flag = 0;
         }
         @Override

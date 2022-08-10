@@ -102,23 +102,36 @@ public class LinkedListDeque<T> implements Deque<T>, Iterable<T> {
         return getRecursiveHelper(temp.next, index);
     }
 
-    public LinkedListDeque(LinkedListDeque other) {
-        sentinel = new Node(null, null, null);
-        sentinel.prev = sentinel;
-        sentinel.next = sentinel;
-        size = 0;
-        for (int i = 0; i < other.size(); i++) {
-            addLast((T) other.get(i));
+    @Override
+    public boolean equals(Object o) {
+        if (o == null) {
+            return false;
         }
+        if (o == this) {
+            return true;
+        }
+        if (!(o instanceof Deque)) {
+            return false;
+        }
+        Deque<T> temp = (Deque<T>) o;
+        if (temp.size() != size()) {
+            return false;
+        }
+        for (int i = 0; i < size(); i++) {
+            if (temp.get(i) != get(i)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public Iterator<T> iterator() {
-        return new LinkedListDeque.ArrayDequeIterator();
+        return new LinkedListDeque.LinkedListDequeIterator();
     }
 
-    private class ArrayDequeIterator implements Iterator<T> {
+    private class LinkedListDequeIterator implements Iterator<T> {
         private int flag;
-        public ArrayDequeIterator() {
+        LinkedListDequeIterator() {
             flag = 0;
         }
         @Override
