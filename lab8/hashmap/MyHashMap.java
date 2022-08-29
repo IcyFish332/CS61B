@@ -132,7 +132,7 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
         buckets = createTable(DEFAULT_INITIALSIZE);
     }
 
-    public Node getNode(K key) {
+    private Node getNode(K key) {
         if (size == 0) {
             return null;
         }
@@ -190,7 +190,7 @@ public class MyHashMap<K, V> implements Map61B<K, V> {
         }
     }
 
-    public void resize(int capacity) {
+    private void resize(int capacity) {
         Collection<Node>[] resized = new Collection[capacity];
         for (int i = 0; i < capacity; i++) {
             resized[i] = createBucket();
