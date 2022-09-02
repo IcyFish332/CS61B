@@ -2,6 +2,7 @@ package gitlet;
 
 import java.io.File;
 import static gitlet.Utils.*;
+import gitlet.Stage.*;
 
 // TODO: any imports you need here
 
@@ -24,6 +25,16 @@ public class Repository {
     public static final File CWD = new File(System.getProperty("user.dir"));
     /** The .gitlet directory. */
     public static final File GITLET_DIR = join(CWD, ".gitlet");
+    /** The stage directory. */
+    public static final File STAGE = join(".gitlet", "stage");
+    /** The blobs directory. */
+    public static final File BLOBS_DIR = join(".gitlet", "blobs");
+    /** The commits directory. */
+    public static final File COMMITS_DIR = join(".gitlet", "commits");
+    /** Points to the current commint */
+    public File HEAD;
+
+
 
     /** Creates a new Gitlet version-control system in the current directory.
      *  This system will automatically start with one commit: a commit that
@@ -46,9 +57,27 @@ public class Repository {
             System.out.println("A Gitlet version-control system already exists in the current directory");
             System.exit(0);
         }
-
         GITLET_DIR.mkdir();
-        Commit initial = new Commit("initial commit");
+        Stage stage = new Stage();
+        writeObject(STAGE, stage);
+        BLOBS_DIR.mkdir();
+        COMMITS_DIR.mkdir();
+        Commit initial = new Commit();
+        initial.writeCommitToFile();
     }
 
+    public static void add(String nFileName) {
+        /** If the file does not exist, print the error message
+         *  and exit without changing anything.
+         */
+        File newFile = join(CWD,nFileName);
+        if (!newFile.exists()) {
+            System.out.println("File does not exist.");
+            System.exit(0);
+        }
+
+        Stage stage = readObject(STAGE, Stage.class);
+        Blob newBlob = new Blob(BLOBS_DIR, nFileName);
+        stage.addFile(nFileName, newBlob.getId());
+    }
 }

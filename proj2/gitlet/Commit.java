@@ -1,8 +1,10 @@
 package gitlet;
 
-// TODO: any imports you need here
+import java.io.File;
+import java.io.Serializable;
+import java.util.Date;
 
-import java.util.Date; // TODO: You'll likely use this in this class
+import static gitlet.Utils.*;
 
 /** Represents a gitlet commit object.
  *  TODO: It's a good idea to give a description here of what else this Class
@@ -10,7 +12,7 @@ import java.util.Date; // TODO: You'll likely use this in this class
  *
  *  @author TODO
  */
-public class Commit {
+public class Commit implements Serializable {
     /**
      * TODO: add instance variables here.
      *
@@ -25,11 +27,14 @@ public class Commit {
     private Date timestamp;
     /** Every commit should record last commit, except Commit 0. */
     private Commit parent;
+    /** Implicates which the commit is. */
+    private String id;
 
     /** Constructs Commit for the "init" operation. */
-    public Commit (String m) {
-        this.message = m;
+    public Commit () {
+        this.message = "initial commit";
         this.timestamp = new Date(0);
+        this.id = sha1(message, timestamp.toString());
         this.parent = null;
     }
     /** Constructs Commit for the rest of operations */
@@ -49,5 +54,14 @@ public class Commit {
 
     public Commit getParent () {
         return this.parent;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void writeCommitToFile() {
+        File file = join("commits", this.getId());
+        writeObject(file, this);
     }
 }
