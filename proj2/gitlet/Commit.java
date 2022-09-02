@@ -21,6 +21,33 @@ public class Commit {
 
     /** The message of this Commit. */
     private String message;
+    /** Keeps track of he time of this Commit. */
+    private Date timestamp;
+    /** Every commit should record last commit, except Commit 0. */
+    private Commit parent;
 
-    /* TODO: fill in the rest of this class. */
+    /** Constructs Commit for the "init" operation. */
+    public Commit (String m) {
+        this.message = m;
+        this.timestamp = new Date(0);
+        this.parent = null;
+    }
+    /** Constructs Commit for the rest of operations */
+    public Commit (String m, Commit parent) {
+        this.message = m;
+        this.timestamp = new Date();
+        this.parent = null;
+    }
+
+    public String getMessage () {
+        return this.message;
+    }
+
+    public Date getTimestamp () {
+        return this.timestamp;
+    }
+
+    public Commit getParent () {
+        return this.parent;
+    }
 }
