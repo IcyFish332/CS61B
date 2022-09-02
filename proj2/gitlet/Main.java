@@ -1,5 +1,7 @@
 package gitlet;
 
+import static gitlet.Repository.*;
+
 /** Driver class for Gitlet, a subset of the Git version-control system.
  *  @author TODO
  */
@@ -17,12 +19,43 @@ public class Main {
         String firstArg = args[0];
         switch(firstArg) {
             case "init":
-                Repository.init();
+                validateNumArgs(args, 1);
+                repo.init();
                 break;
             case "add":
-                // TODO: handle the `add [filename]` command
+                validateNumArgs(args, 2);
+                checkIfInit();
+                repo.add(args[1]);
                 break;
-            // TODO: FILL THE REST IN
+//            case "":
+//
+//                break;
+//            case "":
+//
+//                break;
+            default:
+                System.out.println("No command with that name exists.");
+                System.exit(0);
+        }
+
+    }
+    /**
+     * Checks the number of arguments versus the expected number,
+     * prints out warning and exits if they do not match.
+     *
+     * @param args Argument array from command line
+     * @param n Number of expected arguments
+     */
+    public static void validateNumArgs(String[] args, int n) {
+        if (args.length != n) {
+            System.out.println("Incorrect operands.");
+            System.exit(0);
+        }
+    }
+    public static void checkIfInit() {
+        if (!GITLET_DIR.isDirectory()) {
+            System.out.println("Not in an initialized Gitlet directory.");
+            System.exit(0);
         }
     }
 }
