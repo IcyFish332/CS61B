@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.Date;
 
+import static gitlet.Repository.*;
 import static gitlet.Utils.*;
 
 /** Represents a gitlet commit object.
@@ -61,7 +62,7 @@ public class Commit implements Serializable {
     }
 
     public void writeCommitToFile() {
-        File file = join("commits", this.getId());
+        File file = join(COMMITS_DIR, this.getId());
         writeObject(file, this);
     }
 }
