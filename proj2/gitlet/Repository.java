@@ -1,7 +1,11 @@
 package gitlet;
 
 import java.io.File;
+import java.util.Map;
+
 import static gitlet.Utils.*;
+import static gitlet.Utils.readObject;
+
 import gitlet.Stage.*;
 
 // TODO: any imports you need here
@@ -118,6 +122,18 @@ public class Repository {
      *  unless it is tracked in the current commit).
      */
     public static void rm(String filename) {
-
+        /** If the file is neither staged nor tracked
+         *  by the head commit, print the error message.
+         */
+        Stage stage = readObject(STAGE, Stage.class);
+        Commit headCommit = readObject(HEAD, Commit.class);
+        if (!headCommit.getBlobs().containsKey(filename) && !stage.getAdded().containsKey(filename)) {
+            System.out.println("No reason to remove the file.");
+            System.exit(0);
+        }
+        stage.removeFile(filename);
+        stage.saveStage();
     }
+
+
 }

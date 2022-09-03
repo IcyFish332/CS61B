@@ -48,6 +48,10 @@ public class Commit implements Serializable {
         this.timestamp = new Date();
         this.parent = readContentsAsString(HEAD);
         this.blobs = new HashMap<>();
+        Commit lastCommit = readObject(HEAD, Commit.class);
+        for (Map.Entry<String, String> item: lastCommit.getBlobs().entrySet()) {
+            blobs.put(item.getKey(), item.getValue());
+        }
         Stage stage = readObject(STAGE, Stage.class);
         for (Map.Entry<String, String> item: stage.getAdded().entrySet()) {
             blobs.put(item.getKey(), item.getValue());
@@ -68,6 +72,10 @@ public class Commit implements Serializable {
 
     public String getUID() {
         return UID;
+    }
+
+    public HashMap<String, String> getBlobs() {
+        return blobs;
     }
 
     public void writeCommitToFile() {

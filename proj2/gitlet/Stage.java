@@ -21,6 +21,11 @@ public class Stage implements Serializable {
         removed.remove(filename);
     }
 
+    public void removeFile(String filename) {
+        added.remove(filename);
+        removed.add(filename);
+    }
+
     public boolean isEmpty() {
         return added.isEmpty() && removed.isEmpty();
     }
