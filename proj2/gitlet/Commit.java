@@ -29,7 +29,7 @@ public class Commit implements Serializable {
     /** Implicates which the commit is. */
     private String UID;
     /** Every commit should record last commit, except Commit 0. */
-    private String parent;
+    private List<String> parents;
 
     private HashMap<String, String> blobs;
 
@@ -39,27 +39,28 @@ public class Commit implements Serializable {
         this.message = "initial commit";
         this.timestamp = new Date(0);
         this.UID = sha1(message, timestamp.toString());
-        this.parent = null;
-        this.blobs = null;
+        this.parents = new ArrayList<>();
+        this.blobs = new HashMap<>();
     }
     /** Constructs Commit for the rest of operations */
     public Commit(String m) {
-        this.message = m;
-        this.timestamp = new Date();
-        this.parent = readContentsAsString(HEAD);
-        this.blobs = new HashMap<>();
-        Commit lastCommit = readObject(HEAD, Commit.class);
-        for (Map.Entry<String, String> item: lastCommit.getBlobs().entrySet()) {
-            blobs.put(item.getKey(), item.getValue());
-        }
+        File file = join(COMMITS_DIR, readContentsAsString(HEAD));
+        Commit lastCommit = readObject(file, Commit.class);
+        HashMap<String, String> newBlobs = lastCommit.getBlobs();
         Stage stage = readObject(STAGE, Stage.class);
         for (Map.Entry<String, String> item: stage.getAdded().entrySet()) {
-            blobs.put(item.getKey(), item.getValue());
+            newBlobs.put(item.getKey(), item.getValue());
         }
         for (String filename: stage.getRemoved()) {
-            blobs.remove(filename);
+            newBlobs.remove(filename);
         }
-        this.UID = sha1(message, timestamp.toString(), parent, blobs.toString());
+        List<String> newParents = new ArrayList<>();
+        newParents.add(lastCommit.getUID());
+        this.message = m;
+        this.timestamp = new Date();
+        this.parents = newParents;
+        this.blobs = newBlobs;
+        this.UID = sha1(message, timestamp.toString(), parents.toString(), blobs.toString());
     }
 
     public String getMessage() {
@@ -78,8 +79,9 @@ public class Commit implements Serializable {
         return blobs;
     }
 
-    public void writeCommitToFile() {
+    public void saveCommit() {
         File file = join(COMMITS_DIR, this.getUID());
         writeObject(file, this);
     }
+
 }

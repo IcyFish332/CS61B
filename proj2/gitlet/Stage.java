@@ -30,11 +30,6 @@ public class Stage implements Serializable {
         return added.isEmpty() && removed.isEmpty();
     }
 
-//    public clearStage() {
-//        this.added = new HashMap<>();
-//        this.removed = new HashSet<>();
-//    }
-
     public HashMap<String, String> getAdded() {
         return added;
     }

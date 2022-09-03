@@ -1,13 +1,12 @@
 package gitlet;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static gitlet.Utils.*;
-import static gitlet.Utils.readObject;
-
-import gitlet.Stage.*;
-
 // TODO: any imports you need here
 
 /** Represents a gitlet repository.
@@ -61,7 +60,7 @@ public class Repository {
         BLOBS_DIR.mkdir();
         COMMITS_DIR.mkdir();
         Commit initial = new Commit();
-        initial.writeCommitToFile();
+        initial.saveCommit();
         writeContents(HEAD, initial.getUID());
     }
 
@@ -109,7 +108,7 @@ public class Repository {
             System.exit(0);
         }
         Commit newCommit = new Commit(message);
-        newCommit.writeCommitToFile();
+        newCommit.saveCommit();
         writeContents(HEAD, newCommit.getUID());
         stage = new Stage();
         stage.saveStage();
@@ -126,14 +125,20 @@ public class Repository {
          *  by the head commit, print the error message.
          */
         Stage stage = readObject(STAGE, Stage.class);
-        Commit headCommit = readObject(HEAD, Commit.class);
+        File file = join(COMMITS_DIR, readContentsAsString(HEAD));
+        Commit headCommit = readObject(file, Commit.class);
         if (!headCommit.getBlobs().containsKey(filename) && !stage.getAdded().containsKey(filename)) {
             System.out.println("No reason to remove the file.");
             System.exit(0);
         }
-        stage.removeFile(filename);
+
+        if (stage.getAdded().containsKey(filename)) {
+            stage.removeFile(filename);
+        } else if (headCommit.getBlobs().containsKey(filename)) {
+            stage.getRemoved().add(filename);
+            restrictedDelete(filename);
+        }
         stage.saveStage();
     }
-
 
 }

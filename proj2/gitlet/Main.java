@@ -35,7 +35,7 @@ public class Main {
             case "rm":
                 validateNumArgs(args, 2);
                 checkIfInit();
-
+                repo.rm(args[1]);
                 break;
             default:
                 System.out.println("No command with that name exists.");
