@@ -3,6 +3,8 @@ package gitlet;
 import java.io.File;
 import java.io.Serializable;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
 
 import static gitlet.Repository.*;
 import static gitlet.Utils.*;
@@ -26,23 +28,29 @@ public class Commit implements Serializable {
     private String message;
     /** Keeps track of he time of this Commit. */
     private Date timestamp;
-    /** Every commit should record last commit, except Commit 0. */
-    private Commit parent;
     /** Implicates which the commit is. */
-    private String id;
+    private String UID;
+    /** Every commit should record last commit, except Commit 0. */
+    private String parent;
+
+    private HashMap<String, String> blobs;
+
 
     /** Constructs Commit for the "init" operation. */
     public Commit () {
         this.message = "initial commit";
         this.timestamp = new Date(0);
-        this.id = sha1(message, timestamp.toString());
+        this.UID = sha1(message, timestamp.toString());
         this.parent = null;
+        this.blobs = null;
     }
     /** Constructs Commit for the rest of operations */
-    public Commit (String m, Commit parent) {
+    public Commit (String m, List<String> p, Stage stage) {
         this.message = m;
         this.timestamp = new Date();
-        this.parent = null;
+        this.parent = readContentsAsString(HEAD);
+
+        this.UID = sha1(message, timestamp.toString(), parent.toString(), blobs.toString());
     }
 
     public String getMessage () {
@@ -53,16 +61,14 @@ public class Commit implements Serializable {
         return this.timestamp;
     }
 
-    public Commit getParent () {
-        return this.parent;
-    }
 
-    public String getId() {
-        return id;
+
+    public String getUID() {
+        return UID;
     }
 
     public void writeCommitToFile() {
-        File file = join(COMMITS_DIR, this.getId());
+        File file = join(COMMITS_DIR, this.getUID());
         writeObject(file, this);
     }
 }

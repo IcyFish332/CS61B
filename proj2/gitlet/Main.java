@@ -27,9 +27,10 @@ public class Main {
                 checkIfInit();
                 repo.add(args[1]);
                 break;
-//            case "":
-//
-//                break;
+            case "commit":
+                validateNumArgs(args, 2);
+                checkIfInit();
+                break;
 //            case "":
 //
 //                break;

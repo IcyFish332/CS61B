@@ -17,4 +17,13 @@ public class Stage implements Serializable {
         added.put(filename, blobId);
         removed.remove(filename);
     }
+
+    public boolean isEmpty() {
+        return added.isEmpty() && removed.isEmpty();
+    }
+
+    public void clearStage() {
+        added = null;
+        removed = null;
+    }
 }
