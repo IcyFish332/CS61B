@@ -11,15 +11,17 @@ public class Blob implements Serializable {
     private String filename;
 
     public Blob(File fileFoder, String nFilename) {
-        File newBlob = join(fileFoder, nFilename);
+        File newFile = join(fileFoder, nFilename);
         this.filename = nFilename;
-        if (newBlob.length() != 0) {
-            this.contents = readContents(newBlob);
+        if (newFile.length() != 0) {
+            this.contents = readContents(newFile);
             this.id = sha1(filename, contents);
         } else {
             this.contents = null;
             this.id = sha1(filename);
         }
+        File newBlob = join(BLOBS_DIR, this.id);
+        writeObject(newBlob, this);
     }
 
     public byte[] getContents() {

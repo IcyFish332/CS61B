@@ -3,6 +3,9 @@ package gitlet;
 import java.io.Serializable;
 import java.util.*;
 
+import static gitlet.Repository.STAGE;
+import static gitlet.Utils.writeObject;
+
 public class Stage implements Serializable {
     private HashMap<String, String> added;
 
@@ -22,8 +25,20 @@ public class Stage implements Serializable {
         return added.isEmpty() && removed.isEmpty();
     }
 
-    public void clearStage() {
-        added = null;
-        removed = null;
+//    public clearStage() {
+//        this.added = new HashMap<>();
+//        this.removed = new HashSet<>();
+//    }
+
+    public HashMap<String, String> getAdded() {
+        return added;
+    }
+
+    public HashSet<String> getRemoved() {
+        return removed;
+    }
+
+    public void saveStage() {
+        writeObject(STAGE, this);
     }
 }

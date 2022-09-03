@@ -2,9 +2,7 @@ package gitlet;
 
 import java.io.File;
 import java.io.Serializable;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 import static gitlet.Repository.*;
 import static gitlet.Utils.*;
@@ -37,7 +35,7 @@ public class Commit implements Serializable {
 
 
     /** Constructs Commit for the "init" operation. */
-    public Commit () {
+    public Commit() {
         this.message = "initial commit";
         this.timestamp = new Date(0);
         this.UID = sha1(message, timestamp.toString());
@@ -45,23 +43,28 @@ public class Commit implements Serializable {
         this.blobs = null;
     }
     /** Constructs Commit for the rest of operations */
-    public Commit (String m, List<String> p, Stage stage) {
+    public Commit(String m) {
         this.message = m;
         this.timestamp = new Date();
         this.parent = readContentsAsString(HEAD);
-
-        this.UID = sha1(message, timestamp.toString(), parent.toString(), blobs.toString());
+        this.blobs = new HashMap<>();
+        Stage stage = readObject(STAGE, Stage.class);
+        for (Map.Entry<String, String> item: stage.getAdded().entrySet()) {
+            blobs.put(item.getKey(), item.getValue());
+        }
+        for (String filename: stage.getRemoved()) {
+            blobs.remove(filename);
+        }
+        this.UID = sha1(message, timestamp.toString(), parent, blobs.toString());
     }
 
-    public String getMessage () {
+    public String getMessage() {
         return this.message;
     }
 
-    public Date getTimestamp () {
+    public Date getTimestamp() {
         return this.timestamp;
     }
-
-
 
     public String getUID() {
         return UID;

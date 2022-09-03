@@ -13,14 +13,6 @@ import gitlet.Stage.*;
  *  @author TODO
  */
 public class Repository {
-    /**
-     * TODO: add instance variables here.
-     *
-     * List all instance variables of the Repository class here with a useful
-     * comment above them describing what that variable represents and how that
-     * variable is used. We've provided two examples for you.
-     */
-
     /** The current working directory. */
     public static final File CWD = new File(System.getProperty("user.dir"));
     /** The .gitlet directory. */
@@ -31,7 +23,7 @@ public class Repository {
     public static final File BLOBS_DIR = join(".gitlet", "blobs");
     /** The commits directory. */
     public static final File COMMITS_DIR = join(".gitlet", "commits");
-    /** Points to the current commint */
+    /** Points to the current commit. */
     public static final File HEAD = join(".gitlet", "HEAD");
 
 
@@ -61,7 +53,7 @@ public class Repository {
 
         GITLET_DIR.mkdir();
         Stage stage = new Stage();
-        writeObject(STAGE, stage);
+        stage.saveStage();
         BLOBS_DIR.mkdir();
         COMMITS_DIR.mkdir();
         Commit initial = new Commit();
@@ -78,10 +70,10 @@ public class Repository {
             System.out.println("File does not exist.");
             System.exit(0);
         }
-
         Stage stage = readObject(STAGE, Stage.class);
-        Blob newBlob = new Blob(BLOBS_DIR, nFileName);
+        Blob newBlob = new Blob(CWD, nFileName);
         stage.addFile(nFileName, newBlob.getId());
+        stage.saveStage();
     }
 
     /** Saves a snapshot of tracked files in the current commit and staging area
@@ -112,7 +104,20 @@ public class Repository {
             System.out.println("Please enter a commit message.");
             System.exit(0);
         }
+        Commit newCommit = new Commit(message);
+        newCommit.writeCommitToFile();
+        writeContents(HEAD, newCommit.getUID());
+        stage = new Stage();
+        stage.saveStage();
+    }
 
+    /** Unstage the file if it is currently staged for addition.
+     *  If the file is tracked in the current commit, stage it
+     *  for removal and remove the file from the working directory
+     *  if the user has not already done so (do not remove it
+     *  unless it is tracked in the current commit).
+     */
+    public static void rm(String filename) {
 
     }
 }
