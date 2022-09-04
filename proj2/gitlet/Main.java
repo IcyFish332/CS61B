@@ -3,7 +3,7 @@ package gitlet;
 import static gitlet.Repository.*;
 
 /** Driver class for Gitlet, a subset of the Git version-control system.
- *  @author TODO
+ *  @author Siyuan Lu
  */
 public class Main {
 

@@ -6,10 +6,14 @@ import static gitlet.Repository.*;
 import static gitlet.Utils.*;
 
 public class Blob implements Serializable {
+    /** The contents of this Blob which is stored as bytes. */
     private byte[] contents;
+    /**  The unique id of each Blob. */
     private String id;
+    /** The filename of the Blob. */
     private String filename;
 
+    /** Constructs new bolb as well as saves it to the file. */
     public Blob(File fileFoder, String nFilename) {
         File newFile = join(fileFoder, nFilename);
         this.filename = nFilename;

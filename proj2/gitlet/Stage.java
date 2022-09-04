@@ -7,8 +7,10 @@ import static gitlet.Repository.STAGE;
 import static gitlet.Utils.writeObject;
 
 public class Stage implements Serializable {
+    /** Records all the "add" operation before the next commit and after the last commit. */
     private HashMap<String, String> added;
 
+    /** Records all the "rm" operation before the next commit and after the last commit. */
     private HashSet<String> removed;
 
     public Stage() {

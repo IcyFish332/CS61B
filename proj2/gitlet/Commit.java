@@ -11,28 +11,19 @@ import static gitlet.Utils.*;
  *  TODO: It's a good idea to give a description here of what else this Class
  *  does at a high level.
  *
- *  @author TODO
+ *  @author Siyuan Lu
  */
 public class Commit implements Serializable {
-    /**
-     * TODO: add instance variables here.
-     *
-     * List all instance variables of the Commit class here with a useful
-     * comment above them describing what that variable represents and how that
-     * variable is used. We've provided one example for `message`.
-     */
-
     /** The message of this Commit. */
     private String message;
-    /** Keeps track of he time of this Commit. */
+    /** Keeps track of the time of this Commit. */
     private Date timestamp;
     /** Implicates which the commit is. */
     private String UID;
-    /** Every commit should record last commit, except Commit 0. */
+    /** Last Commit of this */
     private List<String> parents;
-
+    /** All the blobs this commit includes. */
     private HashMap<String, String> blobs;
-
 
     /** Constructs Commit for the "init" operation. */
     public Commit() {
@@ -42,6 +33,7 @@ public class Commit implements Serializable {
         this.parents = new ArrayList<>();
         this.blobs = new HashMap<>();
     }
+
     /** Constructs Commit for the rest of operations */
     public Commit(String m) {
         File file = join(COMMITS_DIR, readContentsAsString(HEAD));
