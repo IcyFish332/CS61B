@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import static gitlet.Utils.*;
+import static gitlet.MyUtils.*;
 // TODO: any imports you need here
 
 /** Represents a gitlet repository.
@@ -125,8 +126,9 @@ public class Repository {
          *  by the head commit, print the error message.
          */
         Stage stage = readObject(STAGE, Stage.class);
-        File file = join(COMMITS_DIR, readContentsAsString(HEAD));
-        Commit headCommit = readObject(file, Commit.class);
+//        File file = join(COMMITS_DIR, readContentsAsString(HEAD));
+//        Commit headCommit = readObject(file, Commit.class);
+        Commit headCommit = getCommitFromUId(readContentsAsString(HEAD));
         if (!headCommit.getBlobs().containsKey(filename) && !stage.getAdded().containsKey(filename)) {
             System.out.println("No reason to remove the file.");
             System.exit(0);
@@ -141,4 +143,35 @@ public class Repository {
         stage.saveStage();
     }
 
+    /** Starting at the current head commit, display information about
+     *  each commit backwards along the commit tree until the initial commit,
+     *  following the first parent commit links, ignoring any second parents
+     *  found in merge commits. (In regular Git, this is what you get with
+     *  git log --first-parent). This set of commit nodes is called the
+     *  commit’s history. For every node in this history, the information it
+     *  should display is the commit id, the time the commit was made,
+     *  and the commit message.
+     */
+    public static void log(){
+//        File file = join(COMMITS_DIR, readContentsAsString(HEAD));
+//        Commit headCommit = readObject(file, Commit.class);
+        Commit headCommit = getCommitFromUId(readContentsAsString(HEAD));
+        System.out.println(headCommit.getCommitLog());
+        while(!headCommit.getParents().isEmpty()) {
+//            File lastFile = join(COMMITS_DIR, headCommit.getParents().get(0));
+//            headCommit = readObject(lastFile, Commit.class);
+            headCommit = getCommitFromUId(headCommit.getParents().get(0));
+            System.out.println(headCommit.getCommitLog());
+        }
+    }
+
+    public static void global_log(){
+        StringBuilder log = new StringBuilder();
+        List<String> filenames = plainFilenamesIn(COMMITS_DIR);
+        for (String filename : filenames) {
+            Commit c = getCommitFromUId(filename);
+            log.append(c.getCommitLog()).append('\n');
+        }
+        System.out.print(log);
+    }
 }

@@ -2,6 +2,7 @@ package gitlet;
 
 import java.io.File;
 import java.io.Serializable;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 import static gitlet.Repository.*;
@@ -55,12 +56,16 @@ public class Commit implements Serializable {
         this.UID = sha1(message, timestamp.toString(), parents.toString(), blobs.toString());
     }
 
+    public List<String> getParents() {
+        return this.parents;
+    }
     public String getMessage() {
         return this.message;
     }
 
-    public Date getTimestamp() {
-        return this.timestamp;
+    public String getTimestamp() {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("EEE MMM d HH:mm:ss yyyy Z", Locale.ENGLISH);
+        return dateFormat.format(this.timestamp);
     }
 
     public String getUID() {
@@ -76,4 +81,20 @@ public class Commit implements Serializable {
         writeObject(file, this);
     }
 
+
+    public String getCommitLog() {
+        StringBuilder logPrinter = new StringBuilder();
+        logPrinter.append("===").append('\n');
+        logPrinter.append("commit ").append(this.UID).append('\n');
+        if (parents.size() > 1) {
+            logPrinter.append("Merge:");
+            for (String parent : parents) {
+                logPrinter.append(" ").append(parent, 0, 7);
+            }
+            logPrinter.append("\n");
+        }
+        logPrinter.append("Date: ").append(this.getTimestamp()).append('\n');
+        logPrinter.append(message).append('\n');
+        return logPrinter.toString();
+    }
 }

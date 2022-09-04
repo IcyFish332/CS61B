@@ -20,22 +20,32 @@ public class Main {
         switch(firstArg) {
             case "init":
                 validateNumArgs(args, 1);
-                repo.init();
+                Repository.init();
                 break;
             case "add":
                 validateNumArgs(args, 2);
                 checkIfInit();
-                repo.add(args[1]);
+                Repository.add(args[1]);
                 break;
             case "commit":
                 validateNumArgs(args, 2);
                 checkIfInit();
-                repo.commit(args[1]);
+                Repository.commit(args[1]);
                 break;
             case "rm":
                 validateNumArgs(args, 2);
                 checkIfInit();
-                repo.rm(args[1]);
+                Repository.rm(args[1]);
+                break;
+            case "log":
+                validateNumArgs(args, 1);
+                checkIfInit();
+                Repository.log();
+                break;
+            case "global-log":
+                validateNumArgs(args, 1);
+                checkIfInit();
+                Repository.global_log();
                 break;
             default:
                 System.out.println("No command with that name exists.");
