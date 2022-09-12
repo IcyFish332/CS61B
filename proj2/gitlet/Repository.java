@@ -1,10 +1,7 @@
 package gitlet;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static gitlet.Utils.*;
 import static gitlet.MyUtils.*;
@@ -27,6 +24,10 @@ public class Repository {
     public static final File BLOBS_DIR = join(".gitlet", "blobs");
     /** The commits directory. */
     public static final File COMMITS_DIR = join(".gitlet", "commits");
+    /** The branches directory. */
+    public static final File BRANCHES_DIR = join(".gitlet", "branches");
+    /** In the branches diectory, points at the cuurent branch */
+    public static final File CURRENTBRANCH = join(BRANCHES_DIR, "currentBranch");
     /** Points to the current commit. */
     public static final File HEAD = join(".gitlet", "HEAD");
 
@@ -60,9 +61,13 @@ public class Repository {
         stage.saveStage();
         BLOBS_DIR.mkdir();
         COMMITS_DIR.mkdir();
+        BRANCHES_DIR.mkdir();
         Commit initial = new Commit();
         initial.saveCommit();
         writeContents(HEAD, initial.getUID());
+        File newBranch = join(BRANCHES_DIR, "master");
+        writeContents(newBranch, initial.getUID());
+        writeContents(CURRENTBRANCH, "master");
     }
 
     public static void add(String nFileName) {
@@ -111,6 +116,8 @@ public class Repository {
         Commit newCommit = new Commit(message);
         newCommit.saveCommit();
         writeContents(HEAD, newCommit.getUID());
+        File currentBranch = join(BRANCHES_DIR, readContentsAsString(CURRENTBRANCH));
+        writeContents(currentBranch, newCommit.getUID());
         stage = new Stage();
         stage.saveStage();
     }
@@ -126,8 +133,6 @@ public class Repository {
          *  by the head commit, print the error message.
          */
         Stage stage = readObject(STAGE, Stage.class);
-//        File file = join(COMMITS_DIR, readContentsAsString(HEAD));
-//        Commit headCommit = readObject(file, Commit.class);
         Commit headCommit = getCommitFromUId(readContentsAsString(HEAD));
         if (!headCommit.getBlobs().containsKey(filename) && !stage.getAdded().containsKey(filename)) {
             System.out.println("No reason to remove the file.");
@@ -153,13 +158,9 @@ public class Repository {
      *  and the commit message.
      */
     public static void log(){
-//        File file = join(COMMITS_DIR, readContentsAsString(HEAD));
-//        Commit headCommit = readObject(file, Commit.class);
         Commit headCommit = getCommitFromUId(readContentsAsString(HEAD));
         System.out.println(headCommit.getCommitLog());
         while(!headCommit.getParents().isEmpty()) {
-//            File lastFile = join(COMMITS_DIR, headCommit.getParents().get(0));
-//            headCommit = readObject(lastFile, Commit.class);
             headCommit = getCommitFromUId(headCommit.getParents().get(0));
             System.out.println(headCommit.getCommitLog());
         }
@@ -173,5 +174,33 @@ public class Repository {
             log.append(c.getCommitLog()).append('\n');
         }
         System.out.print(log);
+    }
+
+    public static void find(String message) {
+        StringBuilder log = new StringBuilder();
+        List<String> filenames = plainFilenamesIn(COMMITS_DIR);
+        boolean isFind = false;
+        for (String filename : filenames) {
+            Commit c = getCommitFromUId(filename);
+            if (c.getMessage().equals(message)) {
+                isFind = true;
+                log.append(c.getUID()).append('\n');
+            }
+        }
+        if (isFind) {
+            System.out.println(log);
+        } else {
+            System.out.println("Found no commit with that message.");
+        }
+    }
+
+    public static void branch(String branchName) {
+        File newBranch = join(BRANCHES_DIR, branchName);
+        if (newBranch.exists()) {
+            System.out.println("A branch with that name already exists.");
+        } else {
+            writeContents(newBranch, readContentsAsString(HEAD));
+            writeContents(CURRENTBRANCH, branchName);
+        }
     }
 }

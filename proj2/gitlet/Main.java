@@ -47,6 +47,19 @@ public class Main {
                 checkIfInit();
                 Repository.global_log();
                 break;
+            case "find":
+                validateNumArgs(args, 2);
+                checkIfInit();
+                Repository.find(args[1]);
+                break;
+            case "merge":
+                validateNumArgs(args, 2);
+                checkIfInit();
+                Repository.branch(args[1]);
+            case "status":
+                validateNumArgs(args, 1);
+                checkIfInit();
+
             default:
                 System.out.println("No command with that name exists.");
                 System.exit(0);
