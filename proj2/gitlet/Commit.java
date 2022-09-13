@@ -9,7 +9,7 @@ import static gitlet.Repository.*;
 import static gitlet.Utils.*;
 
 /** Represents a gitlet commit object.
- *  TODO: It's a good idea to give a description here of what else this Class
+ *  The new Commit is generated whenever the 'commit' is valid.
  *  does at a high level.
  *
  *  @author Siyuan Lu
@@ -21,7 +21,7 @@ public class Commit implements Serializable {
     private Date timestamp;
     /** Implicates which the commit is. */
     private String UID;
-    /** Last Commit of this */
+    /** Last Commit of this. */
     private List<String> parents;
     /** All the blobs this commit includes. */
     private HashMap<String, String> blobs;
@@ -35,7 +35,11 @@ public class Commit implements Serializable {
         this.blobs = new HashMap<>();
     }
 
-    /** Constructs Commit for the rest of operations */
+    /**
+     * Constructs Commit for the rest of operations.
+     *
+     * @param m The message of the commit
+     */
     public Commit(String m) {
         File file = join(COMMITS_DIR, readContentsAsString(HEAD));
         Commit lastCommit = readObject(file, Commit.class);
@@ -76,12 +80,13 @@ public class Commit implements Serializable {
         return blobs;
     }
 
+    /** Save this commit as a file, whose file name is its SHA-1 hash code. */
     public void saveCommit() {
         File file = join(COMMITS_DIR, this.getUID());
         writeObject(file, this);
     }
 
-
+    /** Returns all the messages included in the commit with a specific format. */
     public String getCommitLog() {
         StringBuilder logPrinter = new StringBuilder();
         logPrinter.append("===").append('\n');

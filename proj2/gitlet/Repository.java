@@ -2,16 +2,16 @@ package gitlet;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 
 import static gitlet.Utils.*;
 import static gitlet.MyUtils.*;
-// TODO: any imports you need here
 
 /** Represents a gitlet repository.
- *  TODO: It's a good idea to give a description here of what else this Class
+ *  All the methods representing actual operation is stored in here.
  *  does at a high level.
  *
- *  @author TODO
+ *  @author Siyuan Lu
  */
 public class Repository {
     /** The current working directory. */
@@ -27,14 +27,15 @@ public class Repository {
     /** The branches directory. */
     public static final File BRANCHES_DIR = join(".gitlet", "branches");
     /** In the branches diectory, points at the cuurent branch */
-    public static final File CURRENTBRANCH = join(BRANCHES_DIR, "currentBranch");
+    public static final File CURRENTBRANCH = join(".gitlet", "currentBranch");
     /** Points to the current commit. */
     public static final File HEAD = join(".gitlet", "HEAD");
 
 
 
 
-    /** Creates a new Gitlet version-control system in the current directory.
+    /**
+     *  Creates a new Gitlet version-control system in the current directory.
      *  This system will automatically start with one commit: a commit that
      *  contains no files and has the commit message initial commit (just
      *  like that, with no punctuation). It will have a single branch: master,
@@ -48,8 +49,9 @@ public class Repository {
      *  all commits in all repositories will trace back to it.
      */
     public static void init() {
-        /** If there is already a Gitlet version-control system
-         *  in the current directory, it should abort.
+        /**
+         * If there is already a Gitlet version-control system
+         * in the current directory, it should abort.
          */
         if (GITLET_DIR.exists() && GITLET_DIR.isDirectory()) {
             System.out.println("A Gitlet version-control system already exists in the current directory");
@@ -70,9 +72,23 @@ public class Repository {
         writeContents(CURRENTBRANCH, "master");
     }
 
+    /**
+     * Adds a copy of the file as it currently exists to the staging area
+     * (see the description of the commit command). For this reason,
+     * adding a file is also called staging the file for addition.
+     * Staging an already-staged file overwrites the previous entry in the staging area with the new contents.
+     * The staging area should be somewhere in .gitlet. If the current working version of the file
+     * is identical to the version in the current commit, do not stage it to be added,
+     * and remove it from the staging area if it is already there (as can happen when a file is changed,
+     * added, and then changed back to it’s original version). The file will no longer be staged for removal
+     * (see gitlet rm), if it was at the time of the command.
+     *
+     * @param nFileName filename of new file added
+     */
     public static void add(String nFileName) {
-        /** If the file does not exist, print the error message
-         *  and exit without changing anything.
+        /**
+         * If the file does not exist, print the error message
+         * and exit without changing anything.
          */
         File newFile = join(CWD,nFileName);
         if (!newFile.exists()) {
@@ -80,7 +96,7 @@ public class Repository {
             System.exit(0);
         }
         Stage stage = readObject(STAGE, Stage.class);
-        Blob newBlob = new Blob(CWD, nFileName);
+        Blob newBlob = new Blob(nFileName);
         stage.addFile(nFileName, newBlob.getId());
         stage.saveStage();
     }
@@ -98,16 +114,19 @@ public class Repository {
      *  were staged for addition but weren’t tracked by its parent. Finally,
      *  files tracked in the current commit may be untracked in the new commit
      *  as a result being staged for removal by the rm command (below).
+     *
+     * @param message commit message
      */
     public static void commit(String message) {
-        /** If no files have been staged, abort.*/
+        /** If no files have been staged, abort. */
         Stage stage = readObject(STAGE, Stage.class);
         if (stage.isEmpty()) {
             System.out.println("No changes added to the commit.");
             System.exit(0);
         }
-        /** Every commit must have a non-blank message.
-         *  If it doesn’t, print the error message.
+        /**
+         * Every commit must have a non-blank message.
+         * If it doesn’t, print the error message.
          */
         if (message.equals("")) {
             System.out.println("Please enter a commit message.");
@@ -127,6 +146,8 @@ public class Repository {
      *  for removal and remove the file from the working directory
      *  if the user has not already done so (do not remove it
      *  unless it is tracked in the current commit).
+     *
+     * @param filename filename of removing file from the stage
      */
     public static void rm(String filename) {
         /** If the file is neither staged nor tracked
@@ -166,6 +187,10 @@ public class Repository {
         }
     }
 
+    /**
+     * Like log, except displays information about all commits ever made.
+     * The order of the commits does not matter.
+     */
     public static void global_log(){
         StringBuilder log = new StringBuilder();
         List<String> filenames = plainFilenamesIn(COMMITS_DIR);
@@ -176,6 +201,14 @@ public class Repository {
         System.out.print(log);
     }
 
+    /**
+     * Prints out the ids of all commits that have the given commit message, one per line.
+     * If there are multiple such commits, it prints the ids out on separate lines.
+     * The commit message is a single operand; to indicate a multiword message,
+     * put the operand in quotation marks, as for the commit command below.
+     *
+     * @param message the message of commit being searched
+     */
     public static void find(String message) {
         StringBuilder log = new StringBuilder();
         List<String> filenames = plainFilenamesIn(COMMITS_DIR);
@@ -188,19 +221,58 @@ public class Repository {
             }
         }
         if (isFind) {
-            System.out.println(log);
+            System.out.print(log);
         } else {
             System.out.println("Found no commit with that message.");
         }
     }
 
+    /**
+     * Creates a new branch with the given name, and points it at the current head commit.
+     * A branch is nothing more than a name for a reference (a SHA-1 identifier) to a commit node.
+     * This command does NOT immediately switch to the newly created branch (just as in real Git).
+     * Before ever call branch, the code should be running with a default branch called “master”.
+     *
+     * @param branchName the actual name of new branch
+     */
     public static void branch(String branchName) {
         File newBranch = join(BRANCHES_DIR, branchName);
         if (newBranch.exists()) {
             System.out.println("A branch with that name already exists.");
         } else {
             writeContents(newBranch, readContentsAsString(HEAD));
-            writeContents(CURRENTBRANCH, branchName);
         }
+    }
+
+    /**
+     * Displays what branches currently exist, and marks the current branch with a *.
+     * Also displays what files have been staged for addition or removal.
+     */
+    public static void status() {
+        StringBuilder status = new StringBuilder();
+        Stage stage = readObject(STAGE, Stage.class);
+        status.append("=== Branches ===").append('\n');
+        String currentBranch = readContentsAsString(CURRENTBRANCH);
+        status.append('*').append(currentBranch).append('\n');
+        List<String> filenames = plainFilenamesIn(BRANCHES_DIR);
+        for (String branch : filenames) {
+            if (!branch.equals(currentBranch)){
+                status.append(branch).append('\n');
+            }
+        }
+        status.append('\n').append("=== Staged Files ===").append('\n');
+        for (Map.Entry<String, String> staged : stage.getAdded().entrySet()) {
+            status.append(staged.getKey()).append('\n');
+        }
+        status.append('\n').append("=== Removed Files ===").append('\n');
+        for (String removed: stage.getRemoved()) {
+            status.append(removed).append('\n');
+        }
+        status.append('\n').append("=== Modifications Not Staged For Commit ===").append('\n');
+//        Commit headCommit = getCommitFromUId(readContentsAsString(HEAD));
+//        filenames = plainFilenamesIn(CWD);
+        status.append('\n').append("=== Untracked Files ===").append('\n');
+        status.append('\n');
+        System.out.println(status);
     }
 }

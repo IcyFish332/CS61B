@@ -4,6 +4,17 @@
 
 ## Classes and Data Structures
 
+#### Main
+
+This is the entry point to our program. It takes in arguments from the command line and based on the command 
+(the first element of the args array) calls the corresponding command in Repository which will actually execute the logic of the command. 
+It also validates the arguments based on the command to ensure that enough arguments were passed in.
+Besides, it will determine if this CWD has been initialed. 
+
+#### Fields
+This class has no fields and hence no associated state: 
+it simply validates arguments and defers the execution to the Repository class.
+
 ### Repository
 
 This is where the main logic of our program will live. This file will handle all the actual gitlet commands
@@ -56,11 +67,22 @@ helper method to write each Commit to a file to persist its changes.
 
 #### Fields
 
-1. `private String message`- The message of this Commit, which is provided by the`args`
-2. `private Date timestamp`- The commit time of this Commit, Keeps track of the time of this Commit, returns time and date.
+1. `private String message` - The message of this Commit, which is provided by the`args`
+2. `private Date timestamp` - The commit time of this Commit, Keeps track of the time of this Commit, returns time and date.
 3. `private String UID` - The unique UID for each Commit. Implicates which the commit is through SHA-1 hash.
 4. `private List<String> parents` - Last Commit of this. Every commit should record last commit, except Commit 0.
 5. `private HashMap<String, String> blobs` - All the blobs this commit includes.
+
+### Stage
+
+This class represent the stage that will be written in a file.
+It can record files after "add" and "rm" operations temporarily through two data structure.
+All these files would disappear after "commit" operation. 
+
+#### Fields
+
+1. `private HashMap<String, String> added` - Stores files added, which will be stored as a new blob.
+2. `private HashSet<String> removed` Stores files removed. These files just don't exist in the next commit, the blobs still exist.
 
 ### Utils
 
@@ -70,9 +92,17 @@ as well as reporting errors when they occur.
 This is a staff-provided and PNH written class, so we leave the actual implementation as magic 
 and simply read the helpful javadoc comments above each method to give us an idea of whether or not it’ll be useful for us.
 
-### Fields
+#### Fields
 
 Only some private fields to aid in the magic.
+
+### MyUtils
+
+This class has the same functionality with `Utils`. It includes helpful methods beside these in `Utils`.
+
+#### Fields
+
+Just as `Utils`
 
 ## Algorithms
 

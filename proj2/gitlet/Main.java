@@ -52,20 +52,23 @@ public class Main {
                 checkIfInit();
                 Repository.find(args[1]);
                 break;
-            case "merge":
+            case "branch":
                 validateNumArgs(args, 2);
                 checkIfInit();
                 Repository.branch(args[1]);
+                break;
             case "status":
                 validateNumArgs(args, 1);
                 checkIfInit();
-
+                Repository.status();
+                break;
             default:
                 System.out.println("No command with that name exists.");
                 System.exit(0);
         }
 
     }
+
     /**
      * Checks the number of arguments versus the expected number,
      * prints out warning and exits if they do not match.
@@ -79,6 +82,11 @@ public class Main {
             System.exit(0);
         }
     }
+
+    /**
+     * Checks whether current working directory is initialed.
+     * prints out warning and exits if it is not.
+     */
     public static void checkIfInit() {
         if (!GITLET_DIR.isDirectory()) {
             System.out.println("Not in an initialized Gitlet directory.");
