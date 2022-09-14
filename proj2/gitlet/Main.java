@@ -66,6 +66,14 @@ public class Main {
                 checkIfInit();
                 Repository.checkout(args);
                 break;
+            case "rm-branch":
+                validateNumArgs(args, 2);
+                checkIfInit();
+                Repository.rm_branch(args[1]);
+            case "reset":
+                validateNumArgs(args, 2);
+                checkIfInit();
+                Repository.reset(args[1]);
             default:
                 System.out.println("No command with that name exists.");
                 System.exit(0);

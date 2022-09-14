@@ -132,9 +132,7 @@ public class Repository {
         }
         Commit newCommit = new Commit(message);
         newCommit.saveCommit();
-        writeContents(HEAD, newCommit.getUID());
-        File currentBranch = join(BRANCHES_DIR, readContentsAsString(CURRENTBRANCH));
-        writeContents(currentBranch, newCommit.getUID());
+        setCommitAsHEAD(newCommit.getUID());
         stage = new Stage();
         stage.saveStage();
     }
@@ -357,7 +355,18 @@ public class Repository {
             System.exit(0);
         }
 
-        Commit checkedCommit = getCommitFromUId(readContentsAsString(checkedBranch));
+        checkoutCommit(readContentsAsString(checkedBranch));
+        writeContents(CURRENTBRANCH, branchName);
+    }
+
+    /**
+     * "checkout" the commit through the UID of it.
+     *
+     * @param commitUID the UID of commit we are checking out
+     */
+    public static void checkoutCommit(String commitUID)
+    {
+        Commit checkedCommit = getCommitFromUId(commitUID);
         List<String> currentFilenames = plainFilenamesIn(CWD);
         for (String filename : currentFilenames) {
             File currentFile = join(CWD, filename);
@@ -368,9 +377,56 @@ public class Repository {
                 writeContents(currentFile, getBlobFromId(blobId).getContents());
             }
         }
-        writeContents(CURRENTBRANCH, branchName);
+        Stage stage = new Stage();
+        stage.saveStage();
         writeContents(HEAD, checkedCommit.getUID());
     }
 
+    /**
+     * Deletes the branch with the given name. This only means to delete the pointer
+     * associated with the branch; it does not mean to delete all commits
+     * that were created under the branch, or anything like that.
+     *
+     * @param branchName the name of branch that we are going to remove
+     */
+    public static void rm_branch(String branchName)
+    {
+        File targetBranch = join(BRANCHES_DIR, branchName);
+        if (!targetBranch.exists()) {
+            System.out.println("A branch with that name does not exist.");
+            System.exit(0);
+        }
+        if (branchName.equals(readContentsAsString(CURRENTBRANCH))) {
+            System.out.println("Cannot remove the current branch.");
+            System.exit(0);
+        }
 
+        restrictedDelete(targetBranch);
+    }
+
+    /**
+     * Checks out all the files tracked by the given commit. Removes tracked files that
+     * are not present in that commit. Also moves the current branch’s head to that commit node.
+     * See the intro for an example of what happens to the head pointer after using reset.
+     * The [commit id] may be abbreviated as for checkout. The staging area is cleared.
+     * The command is essentially checkout of an arbitrary commit that also changes the current branch head.
+     *
+     * @param commitUID the UID of the commit that we are going to remove
+     */
+    public static void reset(String commitUID)
+    {
+        File targetCommitFile = join(COMMITS_DIR, commitUID);
+        if (!targetCommitFile.exists()) {
+            System.out.println("No commit with that id exists.");
+            System.exit(0);
+        }
+        Commit targetCommit = getCommitFromUId(commitUID);
+        if (!checkTracked(targetCommit).isEmpty()) {
+            System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+            System.exit(0);
+        }
+
+        checkoutCommit(commitUID);
+        setCommitAsHEAD(commitUID);
+    }
 }
