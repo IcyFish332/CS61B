@@ -49,7 +49,7 @@ public class Repository {
      *  all commits in all repositories will trace back to it.
      */
     public static void init() {
-        /**
+        /*
          * If there is already a Gitlet version-control system
          * in the current directory, it should abort.
          */
@@ -86,11 +86,11 @@ public class Repository {
      * @param nFileName filename of new file added
      */
     public static void add(String nFileName) {
-        /**
+        /*
          * If the file does not exist, print the error message
          * and exit without changing anything.
          */
-        File newFile = join(CWD,nFileName);
+        File newFile = join(CWD, nFileName);
         if (!newFile.exists()) {
             System.out.println("File does not exist.");
             System.exit(0);
@@ -118,16 +118,14 @@ public class Repository {
      * @param message commit message
      */
     public static void commit(String message) {
-        /** If no files have been staged, abort. */
+        // If no files have been staged, abort.
         Stage stage = readObject(STAGE, Stage.class);
         if (stage.isEmpty()) {
             System.out.println("No changes added to the commit.");
             System.exit(0);
         }
-        /**
-         * Every commit must have a non-blank message.
-         * If it doesn’t, print the error message.
-         */
+
+        // Every commit must have a non-blank message.If it doesn’t, print the error message.
         if (message.equals("")) {
             System.out.println("Please enter a commit message.");
             System.exit(0);
@@ -150,9 +148,7 @@ public class Repository {
      * @param filename filename of removing file from the stage
      */
     public static void rm(String filename) {
-        /** If the file is neither staged nor tracked
-         *  by the head commit, print the error message.
-         */
+        /* If the file is neither staged nor tracked by the head commit, print the error message. */
         Stage stage = readObject(STAGE, Stage.class);
         Commit headCommit = getCommitFromUId(readContentsAsString(HEAD));
         if (!headCommit.getBlobs().containsKey(filename) && !stage.getAdded().containsKey(filename)) {
@@ -178,10 +174,10 @@ public class Repository {
      *  should display is the commit id, the time the commit was made,
      *  and the commit message.
      */
-    public static void log(){
+    public static void log() {
         Commit headCommit = getCommitFromUId(readContentsAsString(HEAD));
         System.out.println(headCommit.getCommitLog());
-        while(!headCommit.getParents().isEmpty()) {
+        while (!headCommit.getParents().isEmpty()) {
             headCommit = getCommitFromUId(headCommit.getParents().get(0));
             System.out.println(headCommit.getCommitLog());
         }
@@ -191,7 +187,7 @@ public class Repository {
      * Like log, except displays information about all commits ever made.
      * The order of the commits does not matter.
      */
-    public static void global_log(){
+    public static void global_log() {
         StringBuilder log = new StringBuilder();
         List<String> filenames = plainFilenamesIn(COMMITS_DIR);
         for (String filename : filenames) {
@@ -256,7 +252,7 @@ public class Repository {
         status.append('*').append(currentBranch).append('\n');
         List<String> filenames = plainFilenamesIn(BRANCHES_DIR);
         for (String branch : filenames) {
-            if (!branch.equals(currentBranch)){
+            if (!branch.equals(currentBranch)) {
                 status.append(branch).append('\n');
             }
         }
@@ -275,4 +271,106 @@ public class Repository {
         status.append('\n');
         System.out.println(status);
     }
+
+    /**
+     * Totally, "checkout" operation would deal with 3 specific cases.
+     *
+     * java gitlet.Main checkout -- [file name]
+     * 1.Takes the version of the file as it exists in the head commit
+     * and puts it in the working directory, overwriting the version of the file
+     * that’s already there if there is one. The new version of the file is not staged.
+     *
+     * java gitlet.Main checkout [commit id] -- [file name]
+     * 2.Takes the version of the file as it exists in the commit with the given id,
+     * and puts it in the working directory, overwriting the version of the file
+     * that’s already there if there is one. The new version of the file is not staged.
+     *
+     * java gitlet.Main checkout [branch name]
+     * 3.Takes all files in the commit at the head of the given branch,
+     * and puts them in the working directory, overwriting the versions of the files
+     * that are already there if they exist. Also, at the end of this command,
+     * the given branch will now be considered the current branch (HEAD).
+     * Any files that are tracked in the current branch but are not present
+     * in the checked-out branch are deleted. The staging area is cleared,
+     * unless the checked-out branch is the current branch (see Failure cases below).
+     *
+     * @param message used for check specific file or any other object
+     */
+    public static void checkout(String[] message) {
+        // Case 3
+        if (message.length == 2) {
+            checkoutBranch(message[1]);
+        // Case 2
+        } else if (message[2].equals("--") && message.length == 4) {
+            checkoutFileFromCommit(message[1], message[3]);
+        // Case 1
+        } else if (message[1].equals("--") && message.length == 3) {
+            checkoutFileFromCommit(readContentsAsString(HEAD), message[2]);
+        // Prints out warning and exits if the number of arguments is wrong.
+        } else {
+            System.out.println("Incorrect operands.");
+            System.exit(0);
+        }
+    }
+
+    /**
+     * Helps `checkout` to complete "checkout" order when
+     * the UID of specific commit and the file name are provided,
+     * which could be used in Case 1 and Case 2.
+     *
+     * @param commitUID the UID of specific commit
+     * @param filename the name of file we are checking out
+     */
+    public static void checkoutFileFromCommit(String commitUID, String filename)
+    {
+        List<String> UIDs = plainFilenamesIn(COMMITS_DIR);
+        if (!UIDs.contains(commitUID)) {
+            System.out.println("No commit with that id exists.");
+            System.exit(0);
+        }
+        Commit headCommit = getCommitFromUId(commitUID);
+        if (!headCommit.getBlobs().containsKey(filename)) {
+            System.out.println("File does not exist in that commit.");
+            System.exit(0);
+        }
+
+        File checkedFile = join(CWD, filename);
+        String blobId = headCommit.getBlobs().getOrDefault(filename, null);
+        writeContents(checkedFile, getBlobFromId(blobId).getContents());
+    }
+
+    /**
+     * Helps `checkout` to complete "checkout" order when the branch
+     * is provided, which could be used in Case 3.
+     *
+     * @param branchName the name of branch we are checking out
+     */
+    public static void checkoutBranch(String branchName)
+    {
+        File checkedBranch = join(BRANCHES_DIR, branchName);
+        if (!checkedBranch.exists()) {
+            System.out.println("No such branch exists.");
+            System.exit(0);
+        }
+        if (branchName.equals(readContentsAsString(CURRENTBRANCH))) {
+            System.out.println("No need to checkout the current branch.");
+            System.exit(0);
+        }
+
+        Commit checkedCommit = getCommitFromUId(readContentsAsString(checkedBranch));
+        List<String> currentFilenames = plainFilenamesIn(CWD);
+        for (String filename : currentFilenames) {
+            File currentFile = join(CWD, filename);
+            String blobId = checkedCommit.getBlobs().getOrDefault(filename, null);
+            if (blobId == null) {
+                restrictedDelete(currentFile);
+            } else {
+                writeContents(currentFile, getBlobFromId(blobId).getContents());
+            }
+        }
+        writeContents(CURRENTBRANCH, branchName);
+        writeContents(HEAD, checkedCommit.getUID());
+    }
+
+
 }
