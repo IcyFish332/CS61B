@@ -53,7 +53,8 @@ public class Repository {
          * in the current directory, it should abort.
          */
         if (GITLET_DIR.exists() && GITLET_DIR.isDirectory()) {
-            System.out.println("A Gitlet version-control system already exists in the current directory");
+            System.out.println("A Gitlet version-control system "
+                    + "already exists in the current directory");
             System.exit(0);
         }
 
@@ -75,12 +76,14 @@ public class Repository {
      * Adds a copy of the file as it currently exists to the staging area
      * (see the description of the commit command). For this reason,
      * adding a file is also called staging the file for addition.
-     * Staging an already-staged file overwrites the previous entry in the staging area with the new contents.
-     * The staging area should be somewhere in .gitlet. If the current working version of the file
-     * is identical to the version in the current commit, do not stage it to be added,
-     * and remove it from the staging area if it is already there (as can happen when a file is changed,
-     * added, and then changed back to it’s original version). The file will no longer be staged for removal
-     * (see gitlet rm), if it was at the time of the command.
+     * Staging an already-staged file overwrites the previous entry in the staging area
+     * with the new contents. The staging area should be somewhere in .gitlet.
+     * If the current working version of the file is identical to the version
+     * in the current commit, do not stage it to be added, and remove it
+     * from the staging area if it is already there (as can happen when a file is changed,
+     * added, and then changed back to it’s original version).
+     * The file will no longer be staged for removal (see gitlet rm),
+     * if it was at the time of the command.
      *
      * @param nFileName filename of new file added
      */
@@ -148,7 +151,8 @@ public class Repository {
         /* If the file is neither staged nor tracked by the head commit, print the error message. */
         Stage stage = readObject(STAGE, Stage.class);
         Commit headCommit = getCommitFromUId(readContentsAsString(HEAD));
-        if (!headCommit.getBlobs().containsKey(filename) && !stage.getAdded().containsKey(filename)) {
+        if (!headCommit.getBlobs().containsKey(filename)
+                && !stage.getAdded().containsKey(filename)) {
             System.out.println("No reason to remove the file.");
             System.exit(0);
         }
@@ -184,7 +188,7 @@ public class Repository {
      * Like log, except displays information about all commits ever made.
      * The order of the commits does not matter.
      */
-    public static void global_log() {
+    public static void globalLog() {
         StringBuilder log = new StringBuilder();
         List<String> filenames = plainFilenamesIn(COMMITS_DIR);
         for (String filename : filenames) {
@@ -318,8 +322,8 @@ public class Repository {
      * @param filename the name of file we are checking out
      */
     public static void checkoutFileFromCommit(String commitUID, String filename) {
-        List<String> UIDs = plainFilenamesIn(COMMITS_DIR);
-        if (!UIDs.contains(commitUID)) {
+        List<String> uids = plainFilenamesIn(COMMITS_DIR);
+        if (!uids.contains(commitUID)) {
             System.out.println("No commit with that id exists.");
             System.exit(0);
         }
@@ -384,7 +388,7 @@ public class Repository {
      *
      * @param branchName the name of branch that we are going to remove
      */
-    public static void rm_branch(String branchName) {
+    public static void rmBranch(String branchName) {
         File targetBranch = join(BRANCHES_DIR, branchName);
         if (!targetBranch.exists()) {
             System.out.println("A branch with that name does not exist.");
@@ -403,7 +407,8 @@ public class Repository {
      * are not present in that commit. Also moves the current branch’s head to that commit node.
      * See the intro for an example of what happens to the head pointer after using reset.
      * The [commit id] may be abbreviated as for checkout. The staging area is cleared.
-     * The command is essentially checkout of an arbitrary commit that also changes the current branch head.
+     * The command is essentially checkout of an arbitrary commit
+     * that also changes the current branch head.
      *
      * @param commitUID the UID of the commit that we are going to remove
      */
@@ -415,7 +420,8 @@ public class Repository {
         }
         Commit targetCommit = getCommitFromUId(commitUID);
         if (!checkTracked(targetCommit).isEmpty()) {
-            System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+            System.out.println("There is an untracked file in the way; "
+                    + "delete it, or add and commit it first.");
             System.exit(0);
         }
 
@@ -485,7 +491,8 @@ public class Repository {
         or deleted by the merge, exit.
          */
         if (!checkTracked(currentCommit).isEmpty()) {
-            System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+            System.out.println("There is an untracked file in the way; "
+                    + "delete it, or add and commit it first.");
             System.exit(0);
         }
 
@@ -536,7 +543,8 @@ public class Repository {
             }
         }
 
-        String message = "Merged "+givenBranch+" into "+readContentsAsString(CURRENTBRANCH)+".";
+        String message = "Merged " + givenBranch
+                + " into " + readContentsAsString(CURRENTBRANCH) + ".";
         Commit newCommit = new Commit(message, readContentsAsString(givenBranchFile));
         newCommit.saveCommit();
         setCommitAsHEAD(newCommit.getUID());
@@ -545,14 +553,16 @@ public class Repository {
         checkoutCommit(newCommit.getUID());
     }
 
-    public static void settleConflict(File fileToBeFixed, String currentBranchFile, String givenBranchFile) {
-        File BlobOfCurrent = join(BLOBS_DIR, currentBranchFile);
-        File BlobOfGiven = join(BLOBS_DIR, givenBranchFile);
+    public static void settleConflict(File fileToBeFixed,
+                                      String currentBranchFile,
+                                      String givenBranchFile) {
+        File blobOfCurrent = join(BLOBS_DIR, currentBranchFile);
+        File blobOfGiven = join(BLOBS_DIR, givenBranchFile);
         StringBuilder contents = new StringBuilder();
         contents.append("<<<<<<< HEAD").append('\n');
-        contents.append(readContentsAsString(BlobOfCurrent));
+        contents.append(readContentsAsString(blobOfCurrent));
         contents.append("=======").append('\n');
-        contents.append(readContentsAsString(BlobOfGiven));
+        contents.append(readContentsAsString(blobOfGiven));
         contents.append(">>>>>>>").append('\n');
         writeContents(fileToBeFixed, contents);
     }

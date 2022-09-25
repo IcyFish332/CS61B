@@ -11,8 +11,8 @@ import static gitlet.Utils.*;
  * @author Siyuan Lu
  */
 class MyUtils {
-    static Commit getCommitFromUId(String UID) {
-        File file = join(COMMITS_DIR, UID);
+    static Commit getCommitFromUId(String uid) {
+        File file = join(COMMITS_DIR, uid);
         if (!file.exists()) {
             return null;
         }
@@ -57,8 +57,8 @@ class MyUtils {
                 return commit;
             }
             if (!commit.getParents().isEmpty()) {
-                for (String UID : commit.getParents()) {
-                    queue.add(getCommitFromUId(UID));
+                for (String uid : commit.getParents()) {
+                    queue.add(getCommitFromUId(uid));
                 }
             }
         }
@@ -74,8 +74,8 @@ class MyUtils {
         while (!queue.isEmpty()) {
             Commit commit = queue.poll();
             if (!ancestors.contains(commit.getUID()) && !commit.getParents().isEmpty()) {
-                for (String UID : commit.getParents()) {
-                    queue.add(getCommitFromUId(UID));
+                for (String uid : commit.getParents()) {
+                    queue.add(getCommitFromUId(uid));
                 }
             }
             ancestors.add(commit.getUID());

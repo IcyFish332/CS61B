@@ -17,7 +17,7 @@ public class Main {
         }
         Repository repo = new Repository();
         String firstArg = args[0];
-        switch(firstArg) {
+        switch (firstArg) {
             case "init":
                 validateNumArgs(args, 1);
                 Repository.init();
@@ -45,7 +45,7 @@ public class Main {
             case "global-log":
                 validateNumArgs(args, 1);
                 checkIfInit();
-                Repository.global_log();
+                Repository.globalLog();
                 break;
             case "find":
                 validateNumArgs(args, 2);
@@ -69,15 +69,18 @@ public class Main {
             case "rm-branch":
                 validateNumArgs(args, 2);
                 checkIfInit();
-                Repository.rm_branch(args[1]);
+                Repository.rmBranch(args[1]);
+                break;
             case "reset":
                 validateNumArgs(args, 2);
                 checkIfInit();
                 Repository.reset(args[1]);
+                break;
             case "merge":
                 validateNumArgs(args, 2);
                 checkIfInit();
                 Repository.merge(args[1]);
+                break;
             default:
                 System.out.println("No command with that name exists.");
                 System.exit(0);
