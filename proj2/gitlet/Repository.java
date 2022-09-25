@@ -1,8 +1,7 @@
 package gitlet;
 
 import java.io.File;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static gitlet.Utils.*;
 import static gitlet.MyUtils.*;
@@ -130,7 +129,7 @@ public class Repository {
             System.out.println("Please enter a commit message.");
             System.exit(0);
         }
-        Commit newCommit = new Commit(message);
+        Commit newCommit = new Commit(message, null);
         newCommit.saveCommit();
         setCommitAsHEAD(newCommit.getUID());
         stage = new Stage();
@@ -263,8 +262,7 @@ public class Repository {
             status.append(removed).append('\n');
         }
         status.append('\n').append("=== Modifications Not Staged For Commit ===").append('\n');
-//        Commit headCommit = getCommitFromUId(readContentsAsString(HEAD));
-//        filenames = plainFilenamesIn(CWD);
+
         status.append('\n').append("=== Untracked Files ===").append('\n');
         status.append('\n');
         System.out.println(status);
@@ -319,8 +317,7 @@ public class Repository {
      * @param commitUID the UID of specific commit
      * @param filename the name of file we are checking out
      */
-    public static void checkoutFileFromCommit(String commitUID, String filename)
-    {
+    public static void checkoutFileFromCommit(String commitUID, String filename) {
         List<String> UIDs = plainFilenamesIn(COMMITS_DIR);
         if (!UIDs.contains(commitUID)) {
             System.out.println("No commit with that id exists.");
@@ -343,8 +340,7 @@ public class Repository {
      *
      * @param branchName the name of branch we are checking out
      */
-    public static void checkoutBranch(String branchName)
-    {
+    public static void checkoutBranch(String branchName) {
         File checkedBranch = join(BRANCHES_DIR, branchName);
         if (!checkedBranch.exists()) {
             System.out.println("No such branch exists.");
@@ -364,8 +360,7 @@ public class Repository {
      *
      * @param commitUID the UID of commit we are checking out
      */
-    public static void checkoutCommit(String commitUID)
-    {
+    public static void checkoutCommit(String commitUID) {
         Commit checkedCommit = getCommitFromUId(commitUID);
         List<String> currentFilenames = plainFilenamesIn(CWD);
         for (String filename : currentFilenames) {
@@ -389,8 +384,7 @@ public class Repository {
      *
      * @param branchName the name of branch that we are going to remove
      */
-    public static void rm_branch(String branchName)
-    {
+    public static void rm_branch(String branchName) {
         File targetBranch = join(BRANCHES_DIR, branchName);
         if (!targetBranch.exists()) {
             System.out.println("A branch with that name does not exist.");
@@ -413,8 +407,7 @@ public class Repository {
      *
      * @param commitUID the UID of the commit that we are going to remove
      */
-    public static void reset(String commitUID)
-    {
+    public static void reset(String commitUID) {
         File targetCommitFile = join(COMMITS_DIR, commitUID);
         if (!targetCommitFile.exists()) {
             System.out.println("No commit with that id exists.");
@@ -428,5 +421,139 @@ public class Repository {
 
         checkoutCommit(commitUID);
         setCommitAsHEAD(commitUID);
+    }
+
+    /**
+     * Merges files from the given branch into the current branch.
+     *
+     * @param givenBranch the name of branch that we are going to merge with HEAD
+     */
+    public static void merge(String givenBranch) {
+        Stage stage = readObject(STAGE, Stage.class);
+        /*
+        If there are staged additions or removals present,
+        print the error message and exit.
+         */
+        if (!stage.isEmpty()) {
+            System.out.println("You have uncommitted changes.");
+            System.exit(0);
+        }
+        File checkedBranch = join(BRANCHES_DIR, givenBranch);
+        /*
+        If a branch with the given name does not exist,
+        print the error message and exit.
+         */
+        if (!checkedBranch.exists()) {
+            System.out.println("A branch with that name does not exist.");
+            System.exit(0);
+        }
+        /*
+        If attempting to merge a branch with itself,
+        print the error message and exit.
+         */
+        if (readContentsAsString(CURRENTBRANCH).equals(givenBranch)) {
+            System.out.println("Cannot merge a branch with itself.");
+            System.exit(0);
+        }
+
+        Commit currentCommit = getCommitFromUId(readContentsAsString(HEAD));
+        File givenBranchFile = join(BRANCHES_DIR, givenBranch);
+        Commit givenCommit = getCommitFromUId(readContentsAsString(givenBranchFile));
+        Commit splitPoint = splitPoint(currentCommit, givenCommit);
+
+        /*
+        If the split point is the same commit as the given branch,
+        then we do nothing; the merge is complete, and the operation ends
+         */
+        if (splitPoint.getUID().equals(givenCommit.getUID())) {
+            System.out.println("Given branch is an ancestor of the current branch.");
+            System.exit(0);
+        }
+
+        /*
+        If the split point is the current branch,
+        then the effect is to check out the given branch, and the operation ends
+         */
+        if (splitPoint.getUID().equals(currentCommit.getUID())) {
+            System.out.println("Current branch fast-forwarded.");
+            checkoutBranch(givenBranch);
+            System.exit(0);
+        }
+
+        /*
+        If an untracked file in the current commit would be overwritten
+        or deleted by the merge, exit.
+         */
+        if (!checkTracked(currentCommit).isEmpty()) {
+            System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+            System.exit(0);
+        }
+
+        HashMap<String, String> contentsG = givenCommit.getBlobs();
+        HashMap<String, String> contentsC = currentCommit.getBlobs();
+        HashMap<String, String> contentsS = splitPoint.getBlobs();
+
+        for (String file : contentsS.keySet()) {
+            if (!contentsG.containsKey(file) || !contentsC.containsKey(file)) {
+                stage.removeFile(file);
+            } else {
+                String fileG = contentsG.getOrDefault(file, null);
+                String fileC = contentsC.getOrDefault(file, null);
+                String fileS = contentsS.getOrDefault(file, null);
+                if (fileS.equals(fileC) && !fileS.equals(fileG)) {
+                    stage.addFile(file, fileG);
+                } else if (!fileS.equals(fileC) && fileS.equals(fileG)) {
+                    stage.addFile(file, fileC);
+                } else if (!fileS.equals(fileC) && !fileS.equals(fileG)) {
+                    File conflictFile = join(CWD, file);
+                    settleConflict(conflictFile, fileC, fileG);
+                }
+            }
+            contentsG.remove(file);
+            contentsC.remove(file);
+            contentsS.remove(file);
+        }
+
+        for (String file : contentsG.keySet()) {
+            String fileG = contentsG.getOrDefault(file, null);
+            if (!contentsC.containsKey(file)) {
+                stage.addFile(file, fileG);
+            } else {
+                String fileC = contentsG.getOrDefault(file, null);
+                if (!fileG.equals(fileC)) {
+                    File conflictFile = join(CWD, file);
+                    settleConflict(conflictFile, fileC, fileG);
+                }
+            }
+            contentsG.remove(file);
+            contentsC.remove(file);
+        }
+
+        for (String file : contentsC.keySet()) {
+            String fileC = contentsG.getOrDefault(file, null);
+            if (!contentsG.containsKey(file)) {
+                stage.addFile(file, fileC);
+            }
+        }
+
+        String message = "Merged "+givenBranch+" into "+readContentsAsString(CURRENTBRANCH)+".";
+        Commit newCommit = new Commit(message, readContentsAsString(givenBranchFile));
+        newCommit.saveCommit();
+        setCommitAsHEAD(newCommit.getUID());
+        stage = new Stage();
+        stage.saveStage();
+        checkoutCommit(newCommit.getUID());
+    }
+
+    public static void settleConflict(File fileToBeFixed, String currentBranchFile, String givenBranchFile) {
+        File BlobOfCurrent = join(BLOBS_DIR, currentBranchFile);
+        File BlobOfGiven = join(BLOBS_DIR, givenBranchFile);
+        StringBuilder contents = new StringBuilder();
+        contents.append("<<<<<<< HEAD").append('\n');
+        contents.append(readContentsAsString(BlobOfCurrent));
+        contents.append("=======").append('\n');
+        contents.append(readContentsAsString(BlobOfGiven));
+        contents.append(">>>>>>>").append('\n');
+        writeContents(fileToBeFixed, contents);
     }
 }

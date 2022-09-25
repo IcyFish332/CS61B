@@ -74,6 +74,10 @@ public class Main {
                 validateNumArgs(args, 2);
                 checkIfInit();
                 Repository.reset(args[1]);
+            case "merge":
+                validateNumArgs(args, 2);
+                checkIfInit();
+                Repository.merge(args[1]);
             default:
                 System.out.println("No command with that name exists.");
                 System.exit(0);

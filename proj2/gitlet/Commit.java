@@ -40,7 +40,7 @@ public class Commit implements Serializable {
      *
      * @param m The message of the commit
      */
-    public Commit(String m) {
+    public Commit(String m, String parentUID) {
         File file = join(COMMITS_DIR, readContentsAsString(HEAD));
         Commit lastCommit = readObject(file, Commit.class);
         HashMap<String, String> newBlobs = lastCommit.getBlobs();
@@ -53,6 +53,9 @@ public class Commit implements Serializable {
         }
         List<String> newParents = new ArrayList<>();
         newParents.add(lastCommit.getUID());
+        if (parentUID != null) {
+            newParents.add(parentUID);
+        }
         this.message = m;
         this.timestamp = new Date();
         this.parents = newParents;

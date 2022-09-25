@@ -1,13 +1,15 @@
 package gitlet;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 import static gitlet.Repository.*;
 import static gitlet.Utils.*;
 
+/**
+ *
+ * @author Siyuan Lu
+ */
 class MyUtils {
     static Commit getCommitFromUId(String UID) {
         File file = join(COMMITS_DIR, UID);
@@ -34,12 +36,50 @@ class MyUtils {
         List<String> untrackedFiles = new ArrayList<>();
         HashMap<String, String> commitFiles = currentCommit.getBlobs();
         List<String> filesInCWD = plainFilenamesIn(CWD);
+        Stage stage = readObject(STAGE, Stage.class);
 
         for (String file : filesInCWD) {
-            if (!commitFiles.containsKey(file)) {
+            if (!commitFiles.containsKey(file) || stage.getRemoved().contains(file)) {
                 untrackedFiles.add(file);
             }
         }
         return untrackedFiles;
+    }
+
+    static Commit splitPoint(Commit currentCommit, Commit givenCommit) {
+        Set<String> ancestorsOfC = bfsFromCommit(currentCommit);
+        Queue<Commit> queue = new LinkedList<>();
+
+        queue.add(givenCommit);
+        while (!queue.isEmpty()) {
+            Commit commit = queue.poll();
+            if (ancestorsOfC.contains(commit.getUID())) {
+                return commit;
+            }
+            if (!commit.getParents().isEmpty()) {
+                for (String UID : commit.getParents()) {
+                    queue.add(getCommitFromUId(UID));
+                }
+            }
+        }
+        return new Commit();
+
+    }
+
+    static Set<String> bfsFromCommit(Commit currentCommit) {
+        Set<String> ancestors = new HashSet<>();
+        Queue<Commit> queue = new LinkedList<>();
+
+        queue.add(currentCommit);
+        while (!queue.isEmpty()) {
+            Commit commit = queue.poll();
+            if (!ancestors.contains(commit.getUID()) && !commit.getParents().isEmpty()) {
+                for (String UID : commit.getParents()) {
+                    queue.add(getCommitFromUId(UID));
+                }
+            }
+            ancestors.add(commit.getUID());
+        }
+        return ancestors;
     }
 }
