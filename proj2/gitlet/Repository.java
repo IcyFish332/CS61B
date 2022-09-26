@@ -97,9 +97,16 @@ public class Repository {
             System.out.println("File does not exist.");
             System.exit(0);
         }
-        Stage stage = readObject(STAGE, Stage.class);
+
         Blob newBlob = new Blob(nFileName);
-        stage.addFile(nFileName, newBlob.getId());
+        Stage stage = readObject(STAGE, Stage.class);
+        if (stage.getRemoved().contains(nFileName)) {
+            File removedFile = join(CWD, nFileName);
+            writeContents(removedFile, newBlob.getContents());
+            stage.getRemoved().remove(nFileName);
+        } else if (!stage.getRemoved().contains(nFileName) && newBlob.getId() != null) {
+            stage.getAdded().put(nFileName, newBlob.getId());
+        }
         stage.saveStage();
     }
 
@@ -158,7 +165,7 @@ public class Repository {
         }
 
         if (stage.getAdded().containsKey(filename)) {
-            stage.removeFile(filename);
+            stage.getAdded().remove(filename);
         } else if (headCommit.getBlobs().containsKey(filename)) {
             stage.getRemoved().add(filename);
             restrictedDelete(filename);
@@ -248,6 +255,8 @@ public class Repository {
     public static void status() {
         StringBuilder status = new StringBuilder();
         Stage stage = readObject(STAGE, Stage.class);
+        Commit currentCommit = getCommitFromUId(readContentsAsString(HEAD));
+
         status.append("=== Branches ===").append('\n');
         String currentBranch = readContentsAsString(CURRENTBRANCH);
         status.append('*').append(currentBranch).append('\n');
@@ -266,8 +275,14 @@ public class Repository {
             status.append(removed).append('\n');
         }
         status.append('\n').append("=== Modifications Not Staged For Commit ===").append('\n');
-
+        List<String> targetFiles = modificationsNotStaged(currentCommit);
+        for (String targetFile : targetFiles) {
+            status.append(targetFile).append('\n');
+        }
         status.append('\n').append("=== Untracked Files ===").append('\n');
+        for (String file : checkTracked(currentCommit)) {
+            status.append(file).append('\n');
+        }
         status.append('\n');
         System.out.println(status);
     }
@@ -322,12 +337,13 @@ public class Repository {
      * @param filename the name of file we are checking out
      */
     public static void checkoutFileFromCommit(String commitUID, String filename) {
+        String completeCommitUid = getCompleteCommitUid(commitUID);
         List<String> uids = plainFilenamesIn(COMMITS_DIR);
-        if (!uids.contains(commitUID)) {
+        if (!uids.contains(completeCommitUid)) {
             System.out.println("No commit with that id exists.");
             System.exit(0);
         }
-        Commit headCommit = getCommitFromUId(commitUID);
+        Commit headCommit = getCommitFromUId(completeCommitUid);
         if (!headCommit.getBlobs().containsKey(filename)) {
             System.out.println("File does not exist in that commit.");
             System.exit(0);
@@ -367,14 +383,21 @@ public class Repository {
     public static void checkoutCommit(String commitUID) {
         Commit checkedCommit = getCommitFromUId(commitUID);
         List<String> currentFilenames = plainFilenamesIn(CWD);
+        HashMap<String, String> commitFilenames = checkedCommit.getBlobs();
+
         for (String filename : currentFilenames) {
             File currentFile = join(CWD, filename);
-            String blobId = checkedCommit.getBlobs().getOrDefault(filename, null);
+            String blobId = commitFilenames.getOrDefault(filename, null);
             if (blobId == null) {
                 restrictedDelete(currentFile);
             } else {
                 writeContents(currentFile, getBlobFromId(blobId).getContents());
+                commitFilenames.remove(filename);
             }
+        }
+        for (Map.Entry<String, String> file : commitFilenames.entrySet()) {
+            File currentFile = join(CWD, file.getKey());
+            writeContents(currentFile, getBlobFromId(file.getValue()).getContents());
         }
         Stage stage = new Stage();
         stage.saveStage();
@@ -399,7 +422,7 @@ public class Repository {
             System.exit(0);
         }
 
-        restrictedDelete(targetBranch);
+        targetBranch.delete();
     }
 
     /**
@@ -419,11 +442,7 @@ public class Repository {
             System.exit(0);
         }
         Commit targetCommit = getCommitFromUId(commitUID);
-        if (!checkTracked(targetCommit).isEmpty()) {
-            System.out.println("There is an untracked file in the way; "
-                    + "delete it, or add and commit it first.");
-            System.exit(0);
-        }
+        validUntrackedFile(targetCommit);
 
         checkoutCommit(commitUID);
         setCommitAsHEAD(commitUID);

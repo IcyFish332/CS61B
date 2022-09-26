@@ -34,8 +34,12 @@ public class Blob implements Serializable {
             this.contents = null;
             this.id = sha1(filename);
         }
-        File newBlob = join(BLOBS_DIR, this.id);
-        writeObject(newBlob, this);
+        File blobFile = join(BLOBS_DIR, this.id);
+        if (!blobFile.exists()) {
+            writeObject(blobFile, this);
+        } else {
+            this.id = null;
+        }
     }
 
     public byte[] getContents() {
