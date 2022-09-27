@@ -480,20 +480,26 @@ public class Repository {
         Set<String> filesS = contentsS.keySet();
 
         for (String filename : filesS) {
-            if (!filesG.contains(filename) || !filesC.contains(filename)) {
+            if (!filesG.contains(filename) && !filesC.contains(filename)) {
                 stage.removeFile(filename);
             } else {
-                String fileGId = contentsG.getOrDefault(filename, null);
-                String fileCId = contentsC.getOrDefault(filename, null);
-                String fileSId = contentsS.getOrDefault(filename, null);
-                if (fileSId.equals(fileCId) && !fileSId.equals(fileGId)) {
+                String fileGId = contentsG.getOrDefault(filename, "");
+                String fileCId = contentsC.getOrDefault(filename, "");
+                String fileSId = contentsS.getOrDefault(filename, "");
+                if (fileSId.equals(fileCId) && !fileSId.equals(fileGId) && !fileGId.equals("")) {
                     stage.addFile(filename, fileGId);
-                } else if (!fileSId.equals(fileCId) && fileSId.equals(fileGId)) {
+                } else if (fileSId.equals(fileCId) && fileGId.equals("")) {
+                    stage.removeFile(filename);
+                } else if (!fileSId.equals(fileCId)
+                        && fileSId.equals(fileGId)
+                        && !fileCId.equals("")) {
                     stage.addFile(filename, fileCId);
+                } else if (fileSId.equals(fileGId) && fileCId.equals("")) {
+                    stage.removeFile(filename);
                 } else if (!fileSId.equals(fileCId)
                         && !fileSId.equals(fileGId)
                         && !fileGId.equals(fileCId)) {
-                    settleConflict(filename, fileCId, fileGId);
+                    settleConflict(filename, fileCId, fileGId, stage);
                     ifConflict = true;
                 }
             }
@@ -506,7 +512,7 @@ public class Repository {
                 if (!filesC.contains(filename)) {
                     stage.addFile(filename, fileGId);
                 } else if (!fileGId.equals(fileCId)) {
-                    settleConflict(filename, fileCId, fileGId);
+                    settleConflict(filename, fileCId, fileGId, stage);
                     ifConflict = true;
                 }
             }
@@ -519,7 +525,7 @@ public class Repository {
                 if (!filesG.contains(filename)) {
                     stage.addFile(filename, fileCId);
                 } else if (!fileGId.equals(fileCId)) {
-                    settleConflict(filename, fileCId, fileGId);
+                    settleConflict(filename, fileCId, fileGId, stage);
                     ifConflict = true;
                 }
             }

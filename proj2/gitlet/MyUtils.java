@@ -223,20 +223,21 @@ class MyUtils {
 
     static void settleConflict(String fileToBeFixedName,
                                String currentBranchFile,
-                               String givenBranchFile) {
-        Stage stage = readObject(STAGE, Stage.class);
+                               String givenBranchFile,
+                               Stage stage) {
         File fileToBeFixed = join(CWD, fileToBeFixedName);
-        Blob blobOfCurrent = getBlobFromId(currentBranchFile);
-        Blob blobOfGiven = getBlobFromId(givenBranchFile);
         StringBuilder contents = new StringBuilder();
         contents.append("<<<<<<< HEAD").append('\n');
-        contents.append(blobOfCurrent.getContentsAsString());
+        if (!currentBranchFile.equals("")) {
+            contents.append(getBlobFromId(currentBranchFile).getContentsAsString()).append('\n');
+        }
         contents.append("=======").append('\n');
-        contents.append(blobOfGiven.getContentsAsString());
-        contents.append(">>>>>>>");
+        if (!givenBranchFile.equals("")) {
+            contents.append(getBlobFromId(givenBranchFile).getContentsAsString()).append('\n');
+        }
+        contents.append(">>>>>>>").append('\n');
         writeContents(fileToBeFixed, contents.toString());
         Blob newBlob = new Blob(fileToBeFixedName);
         stage.addFile(fileToBeFixedName, newBlob.getId());
-        stage.saveStage();
     }
 }
