@@ -42,22 +42,23 @@ class MyUtils {
             String filename = trackedfile.getKey();
             if (filesInCWD.contains(filename)) {
                 Blob blobInCWD = new Blob(filename);
-                if (blobInCWD.getId() != null && !stage.getAdded().containsKey(filename)) {
-                    targetFiles.add(filename + "modified");
+                if (!blobInCWD.getId().equals(trackedfile.getValue())
+                        && !stage.getAdded().containsKey(filename)) {
+                    targetFiles.add(filename + " (modified)");
                 }
             } else if (!filesInCWD.contains(filename)
                     && !stage.getRemoved().contains(filename)) {
-                targetFiles.add(filename + "deleted");
+                targetFiles.add(filename + " (deleted)");
             }
         }
 
         for (Map.Entry<String, String> addedfile : stage.getAdded().entrySet()) {
             String filename = addedfile.getKey();
             Blob blobInCWD = new Blob(filename);
-            if (blobInCWD.getId() != null) {
-                targetFiles.add(filename + "modified");
+            if (!blobInCWD.getId().equals(addedfile.getValue())) {
+                targetFiles.add(filename + " (modified)");
             } else if (!filesInCWD.contains(filename)) {
-                targetFiles.add(filename + "deleted");
+                targetFiles.add(filename + " (deleted)");
             }
         }
 
@@ -78,6 +79,15 @@ class MyUtils {
         return null;
     }
 
+    /**
+     * The final category (“Untracked Files”) is for files present
+     * in the working directory but neither staged for addition nor tracked.
+     * This includes files that have been staged for removal,
+     * but then re-created without Gitlet’s knowledge.
+     *
+     * @param currentCommit
+     * @return
+     */
     static List<String> checkTracked(Commit currentCommit) {
         List<String> untrackedFiles = new ArrayList<>();
         HashMap<String, String> commitFiles = currentCommit.getBlobs();
@@ -85,12 +95,10 @@ class MyUtils {
         Stage stage = readObject(STAGE, Stage.class);
 
         for (String file : filesInCWD) {
-            if (!commitFiles.containsKey(file)) {
-                if (stage.getRemoved().contains(file)) {
-                    untrackedFiles.add(file);
-                }
+            if (!commitFiles.containsKey(file) && !stage.getAdded().containsKey(file)) {
+                untrackedFiles.add(file);
             } else {
-                if (!stage.getAdded().containsKey(file)) {
+                if (stage.getRemoved().contains(file)) {
                     untrackedFiles.add(file);
                 }
             }
@@ -110,11 +118,9 @@ class MyUtils {
             Blob newBlob = new Blob(filename);
             String blobIdInCWD = newBlob.getId();
             String targetBlobId = targetCommitFiles.getOrDefault(filename, "");
-            if (blobIdInCWD == null) {
-                blobIdInCWD  = currentCommit.getBlobs().getOrDefault(filename, "");
-            }
             if (!blobIdInCWD.equals(targetBlobId)) {
-                System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
+                System.out.println("There is an untracked file in the way; "
+                        + "delete it, or add and commit it first.");
                 System.exit(0);
             }
         }
@@ -155,5 +161,48 @@ class MyUtils {
             ancestors.add(commit.getUID());
         }
         return ancestors;
+    }
+
+//    static void mergeWithoutSplitpoint(HashMap<String, String> contentsG, HashMap<String, String> contentsC) {
+//
+//        for (String filename : filesG) {
+//            if (!filesS.contains(filename)) {
+//                String fileCId = contentsC.getOrDefault(filename, null);
+//                String fileGId = contentsG.getOrDefault(filename, null);
+//                if (!filesC.contains(filename)) {
+//                    stage.addFile(filename, fileGId);
+//                } else if (!fileGId.equals(fileCId)) {
+//                    settleConflict(filename, fileCId, fileGId);
+//                }
+//            }
+//        }
+//
+//        for (String filename : filesC) {
+//            if (!filesS.contains(filename)) {
+//                String fileCId = contentsC.getOrDefault(filename, null);
+//                String fileGId = contentsG.getOrDefault(filename, null);
+//                if (!filesG.contains(filename)) {
+//                    stage.addFile(filename, fileGId);
+//                } else if (!fileGId.equals(fileCId)) {
+//                    settleConflict(filename, fileCId, fileGId);
+//                }
+//            }
+//        }
+//
+//    }
+
+    static void settleConflict(String fileToBeFixedName,
+                               String currentBranchFile,
+                               String givenBranchFile) {
+        File fileToBeFixed = join(CWD, fileToBeFixedName);
+        File blobOfCurrent = join(BLOBS_DIR, currentBranchFile);
+        File blobOfGiven = join(BLOBS_DIR, givenBranchFile);
+        StringBuilder contents = new StringBuilder();
+        contents.append("<<<<<<< HEAD").append('\n');
+        contents.append(readContentsAsString(blobOfCurrent));
+        contents.append("=======").append('\n');
+        contents.append(readContentsAsString(blobOfGiven));
+        contents.append(">>>>>>>").append('\n');
+        writeContents(fileToBeFixed, contents);
     }
 }

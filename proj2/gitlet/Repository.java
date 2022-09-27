@@ -98,13 +98,16 @@ public class Repository {
             System.exit(0);
         }
 
+        Commit headCommit = getCommitFromUId(readContentsAsString(HEAD));
         Blob newBlob = new Blob(nFileName);
+        String headBlobId = headCommit.getBlobs().getOrDefault(nFileName, "");
         Stage stage = readObject(STAGE, Stage.class);
         if (stage.getRemoved().contains(nFileName)) {
             File removedFile = join(CWD, nFileName);
             writeContents(removedFile, newBlob.getContents());
             stage.getRemoved().remove(nFileName);
-        } else if (!stage.getRemoved().contains(nFileName) && newBlob.getId() != null) {
+        } else if (!stage.getRemoved().contains(nFileName)
+                && !newBlob.getId().equals(headBlobId)) {
             stage.getAdded().put(nFileName, newBlob.getId());
         }
         stage.saveStage();
@@ -126,7 +129,7 @@ public class Repository {
      *
      * @param message commit message
      */
-    public static void commit(String message) {
+    public static void commit(String message, String parentUid) {
         // If no files have been staged, abort.
         Stage stage = readObject(STAGE, Stage.class);
         if (stage.isEmpty()) {
@@ -139,7 +142,7 @@ public class Repository {
             System.out.println("Please enter a commit message.");
             System.exit(0);
         }
-        Commit newCommit = new Commit(message, null);
+        Commit newCommit = new Commit(message, parentUid);
         newCommit.saveCommit();
         setCommitAsHEAD(newCommit.getUID());
         stage = new Stage();
@@ -371,6 +374,8 @@ public class Repository {
             System.exit(0);
         }
 
+        Commit checkedCommit = getCommitFromUId(readContentsAsString(checkedBranch));
+        validUntrackedFile(checkedCommit);
         checkoutCommit(readContentsAsString(checkedBranch));
         writeContents(CURRENTBRANCH, branchName);
     }
@@ -391,13 +396,18 @@ public class Repository {
             if (blobId == null) {
                 restrictedDelete(currentFile);
             } else {
-                writeContents(currentFile, getBlobFromId(blobId).getContents());
+                Blob commitBlob = getBlobFromId(blobId);
+                writeContents(currentFile, commitBlob.getContents());
                 commitFilenames.remove(filename);
             }
         }
-        for (Map.Entry<String, String> file : commitFilenames.entrySet()) {
-            File currentFile = join(CWD, file.getKey());
-            writeContents(currentFile, getBlobFromId(file.getValue()).getContents());
+
+        for (String filename : commitFilenames.keySet()) {
+            File currentFile = join(CWD, filename);
+            String blobId = commitFilenames.getOrDefault(filename, null);
+            if (blobId != null) {
+                writeContents(currentFile, getBlobFromId(blobId).getContents());
+            }
         }
         Stage stage = new Stage();
         stage.saveStage();
@@ -463,12 +473,12 @@ public class Repository {
             System.out.println("You have uncommitted changes.");
             System.exit(0);
         }
-        File checkedBranch = join(BRANCHES_DIR, givenBranch);
+        File givenBranchFile = join(BRANCHES_DIR, givenBranch);
         /*
         If a branch with the given name does not exist,
         print the error message and exit.
          */
-        if (!checkedBranch.exists()) {
+        if (!givenBranchFile.exists()) {
             System.out.println("A branch with that name does not exist.");
             System.exit(0);
         }
@@ -482,7 +492,6 @@ public class Repository {
         }
 
         Commit currentCommit = getCommitFromUId(readContentsAsString(HEAD));
-        File givenBranchFile = join(BRANCHES_DIR, givenBranch);
         Commit givenCommit = getCommitFromUId(readContentsAsString(givenBranchFile));
         Commit splitPoint = splitPoint(currentCommit, givenCommit);
 
@@ -505,84 +514,70 @@ public class Repository {
             System.exit(0);
         }
 
+        //status();
         /*
         If an untracked file in the current commit would be overwritten
         or deleted by the merge, exit.
          */
-        if (!checkTracked(currentCommit).isEmpty()) {
-            System.out.println("There is an untracked file in the way; "
-                    + "delete it, or add and commit it first.");
-            System.exit(0);
-        }
+        validUntrackedFile(givenCommit);
 
         HashMap<String, String> contentsG = givenCommit.getBlobs();
         HashMap<String, String> contentsC = currentCommit.getBlobs();
         HashMap<String, String> contentsS = splitPoint.getBlobs();
 
-        for (String file : contentsS.keySet()) {
-            if (!contentsG.containsKey(file) || !contentsC.containsKey(file)) {
-                stage.removeFile(file);
+        Set<String> filesG = contentsG.keySet();
+        Set<String> filesC = contentsC.keySet();
+        Set<String> filesS = contentsS.keySet();
+
+        for (String filename : filesS) {
+            if (!filesG.contains(filename) || !filesC.contains(filename)) {
+                stage.removeFile(filename);
             } else {
-                String fileG = contentsG.getOrDefault(file, null);
-                String fileC = contentsC.getOrDefault(file, null);
-                String fileS = contentsS.getOrDefault(file, null);
-                if (fileS.equals(fileC) && !fileS.equals(fileG)) {
-                    stage.addFile(file, fileG);
-                } else if (!fileS.equals(fileC) && fileS.equals(fileG)) {
-                    stage.addFile(file, fileC);
-                } else if (!fileS.equals(fileC) && !fileS.equals(fileG)) {
-                    File conflictFile = join(CWD, file);
-                    settleConflict(conflictFile, fileC, fileG);
+                String fileGId = contentsG.getOrDefault(filename, null);
+                String fileCId = contentsC.getOrDefault(filename, null);
+                String fileSId = contentsS.getOrDefault(filename, null);
+                if (fileSId.equals(fileCId) && !fileSId.equals(fileGId)) {
+                    stage.addFile(filename, fileGId);
+                } else if (!fileSId.equals(fileCId) && fileSId.equals(fileGId)) {
+                    stage.addFile(filename, fileCId);
+                } else if (!fileSId.equals(fileCId)
+                        && !fileSId.equals(fileGId)
+                        && !fileGId.equals(fileCId)) {
+                    settleConflict(filename, fileCId, fileGId);
                 }
             }
-            contentsG.remove(file);
-            contentsC.remove(file);
-            contentsS.remove(file);
         }
 
-        for (String file : contentsG.keySet()) {
-            String fileG = contentsG.getOrDefault(file, null);
-            if (!contentsC.containsKey(file)) {
-                stage.addFile(file, fileG);
-            } else {
-                String fileC = contentsG.getOrDefault(file, null);
-                if (!fileG.equals(fileC)) {
-                    File conflictFile = join(CWD, file);
-                    settleConflict(conflictFile, fileC, fileG);
+        for (String filename : filesG) {
+            if (!filesS.contains(filename)) {
+                String fileCId = contentsC.getOrDefault(filename, null);
+                String fileGId = contentsG.getOrDefault(filename, null);
+                if (!filesC.contains(filename)) {
+                    stage.addFile(filename, fileGId);
+                } else if (!fileGId.equals(fileCId)) {
+                    settleConflict(filename, fileCId, fileGId);
                 }
             }
-            contentsG.remove(file);
-            contentsC.remove(file);
         }
 
-        for (String file : contentsC.keySet()) {
-            String fileC = contentsG.getOrDefault(file, null);
-            if (!contentsG.containsKey(file)) {
-                stage.addFile(file, fileC);
+        for (String filename : filesC) {
+            if (!filesS.contains(filename)) {
+                String fileCId = contentsC.getOrDefault(filename, null);
+                String fileGId = contentsG.getOrDefault(filename, null);
+                if (!filesG.contains(filename)) {
+                    stage.addFile(filename, fileGId);
+                } else if (!fileGId.equals(fileCId)) {
+                    settleConflict(filename, fileCId, fileGId);
+                }
             }
         }
+        stage.saveStage();
 
         String message = "Merged " + givenBranch
                 + " into " + readContentsAsString(CURRENTBRANCH) + ".";
-        Commit newCommit = new Commit(message, readContentsAsString(givenBranchFile));
-        newCommit.saveCommit();
-        setCommitAsHEAD(newCommit.getUID());
-        stage = new Stage();
-        stage.saveStage();
-        checkoutCommit(newCommit.getUID());
+        commit(message, readContentsAsString(givenBranchFile));
+        checkoutCommit(readContentsAsString(HEAD));
     }
 
-    public static void settleConflict(File fileToBeFixed,
-                                      String currentBranchFile,
-                                      String givenBranchFile) {
-        File blobOfCurrent = join(BLOBS_DIR, currentBranchFile);
-        File blobOfGiven = join(BLOBS_DIR, givenBranchFile);
-        StringBuilder contents = new StringBuilder();
-        contents.append("<<<<<<< HEAD").append('\n');
-        contents.append(readContentsAsString(blobOfCurrent));
-        contents.append("=======").append('\n');
-        contents.append(readContentsAsString(blobOfGiven));
-        contents.append(">>>>>>>").append('\n');
-        writeContents(fileToBeFixed, contents);
-    }
+
 }

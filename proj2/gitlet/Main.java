@@ -30,7 +30,7 @@ public class Main {
             case "commit":
                 validateNumArgs(args, 2);
                 checkIfInit();
-                Repository.commit(args[1]);
+                Repository.commit(args[1], null);
                 break;
             case "rm":
                 validateNumArgs(args, 2);

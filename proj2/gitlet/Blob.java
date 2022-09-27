@@ -37,8 +37,6 @@ public class Blob implements Serializable {
         File blobFile = join(BLOBS_DIR, this.id);
         if (!blobFile.exists()) {
             writeObject(blobFile, this);
-        } else {
-            this.id = null;
         }
     }
 
