@@ -235,7 +235,7 @@ class MyUtils {
         if (!givenBranchFile.equals("")) {
             contents.append(getBlobFromId(givenBranchFile).getContentsAsString()).append('\n');
         }
-        contents.append(">>>>>>>").append('\n');
+        contents.append(">>>>>>>");
         writeContents(fileToBeFixed, contents.toString());
         Blob newBlob = new Blob(fileToBeFixedName);
         stage.addFile(fileToBeFixedName, newBlob.getId());
