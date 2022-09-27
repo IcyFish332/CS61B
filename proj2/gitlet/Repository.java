@@ -464,67 +464,17 @@ public class Repository {
      * @param givenBranch the name of branch that we are going to merge with HEAD
      */
     public static void merge(String givenBranch) {
-        Stage stage = readObject(STAGE, Stage.class);
-        /*
-        If there are staged additions or removals present,
-        print the error message and exit.
-         */
-        if (!stage.isEmpty()) {
-            System.out.println("You have uncommitted changes.");
-            System.exit(0);
-        }
-        File givenBranchFile = join(BRANCHES_DIR, givenBranch);
-        /*
-        If a branch with the given name does not exist,
-        print the error message and exit.
-         */
-        if (!givenBranchFile.exists()) {
-            System.out.println("A branch with that name does not exist.");
-            System.exit(0);
-        }
-        /*
-        If attempting to merge a branch with itself,
-        print the error message and exit.
-         */
-        if (readContentsAsString(CURRENTBRANCH).equals(givenBranch)) {
-            System.out.println("Cannot merge a branch with itself.");
-            System.exit(0);
-        }
+        checkMergeError(givenBranch);
 
+        Stage stage = readObject(STAGE, Stage.class);
+        File givenBranchFile = join(BRANCHES_DIR, givenBranch);
         Commit currentCommit = getCommitFromUId(readContentsAsString(HEAD));
         Commit givenCommit = getCommitFromUId(readContentsAsString(givenBranchFile));
         Commit splitPoint = splitPoint(currentCommit, givenCommit);
-
-        /*
-        If the split point is the same commit as the given branch,
-        then we do nothing; the merge is complete, and the operation ends
-         */
-        if (splitPoint.getUID().equals(givenCommit.getUID())) {
-            System.out.println("Given branch is an ancestor of the current branch.");
-            System.exit(0);
-        }
-
-        /*
-        If the split point is the current branch,
-        then the effect is to check out the given branch, and the operation ends
-         */
-        if (splitPoint.getUID().equals(currentCommit.getUID())) {
-            System.out.println("Current branch fast-forwarded.");
-            checkoutBranch(givenBranch);
-            System.exit(0);
-        }
-
-        //status();
-        /*
-        If an untracked file in the current commit would be overwritten
-        or deleted by the merge, exit.
-         */
-        validUntrackedFile(givenCommit);
-
+        boolean ifConflict = false;
         HashMap<String, String> contentsG = givenCommit.getBlobs();
         HashMap<String, String> contentsC = currentCommit.getBlobs();
         HashMap<String, String> contentsS = splitPoint.getBlobs();
-
         Set<String> filesG = contentsG.keySet();
         Set<String> filesC = contentsC.keySet();
         Set<String> filesS = contentsS.keySet();
@@ -544,6 +494,7 @@ public class Repository {
                         && !fileSId.equals(fileGId)
                         && !fileGId.equals(fileCId)) {
                     settleConflict(filename, fileCId, fileGId);
+                    ifConflict = true;
                 }
             }
         }
@@ -556,6 +507,7 @@ public class Repository {
                     stage.addFile(filename, fileGId);
                 } else if (!fileGId.equals(fileCId)) {
                     settleConflict(filename, fileCId, fileGId);
+                    ifConflict = true;
                 }
             }
         }
@@ -565,14 +517,18 @@ public class Repository {
                 String fileCId = contentsC.getOrDefault(filename, null);
                 String fileGId = contentsG.getOrDefault(filename, null);
                 if (!filesG.contains(filename)) {
-                    stage.addFile(filename, fileGId);
+                    stage.addFile(filename, fileCId);
                 } else if (!fileGId.equals(fileCId)) {
                     settleConflict(filename, fileCId, fileGId);
+                    ifConflict = true;
                 }
             }
         }
-        stage.saveStage();
 
+        stage.saveStage();
+        if (ifConflict) {
+            System.out.println("Encountered a merge conflict.");
+        }
         String message = "Merged " + givenBranch
                 + " into " + readContentsAsString(CURRENTBRANCH) + ".";
         commit(message, readContentsAsString(givenBranchFile));

@@ -163,46 +163,80 @@ class MyUtils {
         return ancestors;
     }
 
-//    static void mergeWithoutSplitpoint(HashMap<String, String> contentsG, HashMap<String, String> contentsC) {
-//
-//        for (String filename : filesG) {
-//            if (!filesS.contains(filename)) {
-//                String fileCId = contentsC.getOrDefault(filename, null);
-//                String fileGId = contentsG.getOrDefault(filename, null);
-//                if (!filesC.contains(filename)) {
-//                    stage.addFile(filename, fileGId);
-//                } else if (!fileGId.equals(fileCId)) {
-//                    settleConflict(filename, fileCId, fileGId);
-//                }
-//            }
-//        }
-//
-//        for (String filename : filesC) {
-//            if (!filesS.contains(filename)) {
-//                String fileCId = contentsC.getOrDefault(filename, null);
-//                String fileGId = contentsG.getOrDefault(filename, null);
-//                if (!filesG.contains(filename)) {
-//                    stage.addFile(filename, fileGId);
-//                } else if (!fileGId.equals(fileCId)) {
-//                    settleConflict(filename, fileCId, fileGId);
-//                }
-//            }
-//        }
-//
-//    }
+    static void checkMergeError(String givenBranch) {
+        Stage stage = readObject(STAGE, Stage.class);
+        /*
+        If there are staged additions or removals present,
+        print the error message and exit.
+         */
+        if (!stage.isEmpty()) {
+            System.out.println("You have uncommitted changes.");
+            System.exit(0);
+        }
+        File givenBranchFile = join(BRANCHES_DIR, givenBranch);
+        /*
+        If a branch with the given name does not exist,
+        print the error message and exit.
+         */
+        if (!givenBranchFile.exists()) {
+            System.out.println("A branch with that name does not exist.");
+            System.exit(0);
+        }
+        /*
+        If attempting to merge a branch with itself,
+        print the error message and exit.
+         */
+        if (readContentsAsString(CURRENTBRANCH).equals(givenBranch)) {
+            System.out.println("Cannot merge a branch with itself.");
+            System.exit(0);
+        }
+
+        Commit currentCommit = getCommitFromUId(readContentsAsString(HEAD));
+        Commit givenCommit = getCommitFromUId(readContentsAsString(givenBranchFile));
+        Commit splitPoint = splitPoint(currentCommit, givenCommit);
+
+        /*
+        If the split point is the same commit as the given branch,
+        then we do nothing; the merge is complete, and the operation ends
+         */
+        if (splitPoint.getUID().equals(givenCommit.getUID())) {
+            System.out.println("Given branch is an ancestor of the current branch.");
+            System.exit(0);
+        }
+
+        /*
+        If the split point is the current branch,
+        then the effect is to check out the given branch, and the operation ends
+         */
+        if (splitPoint.getUID().equals(currentCommit.getUID())) {
+            System.out.println("Current branch fast-forwarded.");
+            checkoutBranch(givenBranch);
+            System.exit(0);
+        }
+
+        /*
+        If an untracked file in the current commit would be overwritten
+        or deleted by the merge, exit.
+         */
+        validUntrackedFile(givenCommit);
+    }
 
     static void settleConflict(String fileToBeFixedName,
                                String currentBranchFile,
                                String givenBranchFile) {
+        Stage stage = readObject(STAGE, Stage.class);
         File fileToBeFixed = join(CWD, fileToBeFixedName);
-        File blobOfCurrent = join(BLOBS_DIR, currentBranchFile);
-        File blobOfGiven = join(BLOBS_DIR, givenBranchFile);
+        Blob blobOfCurrent = getBlobFromId(currentBranchFile);
+        Blob blobOfGiven = getBlobFromId(givenBranchFile);
         StringBuilder contents = new StringBuilder();
         contents.append("<<<<<<< HEAD").append('\n');
-        contents.append(readContentsAsString(blobOfCurrent));
+        contents.append(blobOfCurrent.getContentsAsString());
         contents.append("=======").append('\n');
-        contents.append(readContentsAsString(blobOfGiven));
-        contents.append(">>>>>>>").append('\n');
-        writeContents(fileToBeFixed, contents);
+        contents.append(blobOfGiven.getContentsAsString());
+        contents.append(">>>>>>>");
+        writeContents(fileToBeFixed, contents.toString());
+        Blob newBlob = new Blob(fileToBeFixedName);
+        stage.addFile(fileToBeFixedName, newBlob.getId());
+        stage.saveStage();
     }
 }
